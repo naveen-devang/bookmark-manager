@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bookmark Manager</title>
+        <style>
+            /* Base styles */
+            body {
+                width: 450px;
+                min-height: 400px;
+                overflow-x: hidden;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+                    sans-serif;
+                background-color: #f8f9fa;
+                color: #333;
+                margin: 0;
+                padding: 0;
+                line-height: 1.5;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            /* Container */
+            .container {
+                padding: 1.5rem;
+                max-width: 100%;
+            }
+
+            /* Header */
+            header {
+                margin-bottom: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                margin: 0;
+            }
+
+            /* Loading spinner */
+            .spinner-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 3rem 0;
+            }
+
+            .spinner {
+                border: 3px solid rgba(99, 102, 241, 0.2);
+                border-radius: 50%;
+                border-top: 3px solid rgba(99, 102, 241, 1);
+                width: 24px;
+                height: 24px;
+                animation: spin 1s linear infinite;
+                margin-bottom: 1rem;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .spinner-text {
+                color: #6b7280;
+                margin: 0;
+            }
+
+            /* Error message */
+            .error-message {
+                display: none;
+                padding: 1rem 1.5rem;
+                background-color: #fee2e2;
+                border-radius: 0.5rem;
+                color: #dc2626;
+                margin-bottom: 1.5rem;
+            }
+
+            /* Form */
+            .form {
+                display: none;
+            }
+
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+            }
+
+            .small-label {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            input,
+            textarea {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 0.5rem;
+                font-family: inherit;
+                font-size: inherit;
+                background-color: #fff;
+                color: #333;
+                transition:
+                    border-color 0.15s,
+                    box-shadow 0.15s;
+            }
+
+            textarea {
+                resize: none;
+                height: 100px;
+            }
+
+            input:focus,
+            textarea:focus {
+                outline: none;
+                border-color: #6366f1;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            }
+
+            /* Image preview */
+            .image-preview {
+                width: 100%;
+                min-height: 9rem;
+                max-height: 18rem;
+                border-radius: 0.5rem;
+                border: 2px solid #e5e7eb;
+                background-color: #f3f4f6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                margin-bottom: 1rem;
+                padding: 0.5rem;
+            }
+
+            .no-image-text {
+                color: #9ca3af;
+                padding: 2rem 0;
+            }
+
+            .preview-image {
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                display: none; /* This will be controlled by JavaScript */
+            }
+
+            /* Button group */
+            .button-group {
+                display: flex;
+                justify-content: flex-end;
+                gap: 1rem;
+            }
+
+            /* Buttons */
+            button {
+                cursor: pointer;
+                padding: 0.75rem 1.5rem;
+                font-weight: 600;
+                border-radius: 0.5rem;
+                border: none;
+                transition: all 0.15s;
+            }
+
+            .btn-secondary {
+                background-color: #fff;
+                color: #4b5563;
+                border: 2px solid #e5e7eb;
+            }
+
+            .btn-secondary:hover {
+                border-color: #6366f1;
+                color: #6366f1;
+            }
+
+            .btn-primary {
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                color: white;
+                box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+            }
+
+            .btn-primary:hover {
+                opacity: 0.9;
+                box-shadow: 0 4px 12px -1px rgba(99, 102, 241, 0.3);
+            }
+
+            button:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+
+            /* Success message */
+            .success-container {
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 0;
+                text-align: center;
+            }
+
+            .success-icon {
+                width: 4rem;
+                height: 4rem;
+                background-color: #d1fae5;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+
+            .success-icon svg {
+                width: 2rem;
+                height: 2rem;
+                color: #10b981;
+            }
+
+            .success-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+
+            .success-message {
+                color: #6b7280;
+                margin-bottom: 1.5rem;
+            }
+
+            /* Dark mode */
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: #1f2937;
+                    color: #f3f4f6;
+                }
+
+                input,
+                textarea {
+                    background-color: #374151;
+                    border-color: #4b5563;
+                    color: #f3f4f6;
+                }
+
+                input:focus,
+                textarea:focus {
+                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+                }
+
+                .image-preview {
+                    background-color: #374151;
+                    border-color: #4b5563;
+                }
+
+                .no-image-text {
+                    color: #6b7280;
+                }
+
+                .btn-secondary {
+                    background-color: #374151;
+                    color: #e5e7eb;
+                    border-color: #4b5563;
+                }
+
+                .btn-secondary:hover {
+                    border-color: #6366f1;
+                    color: #a5b4fc;
+                }
+
+                .error-message {
+                    background-color: rgba(220, 38, 38, 0.1);
+                    color: #ef4444;
+                }
+
+                .success-icon {
+                    background-color: rgba(16, 185, 129, 0.1);
+                }
+
+                .spinner-text,
+                .success-message {
+                    color: #9ca3af;
+                }
+            }
+
+            /* Animation for loading spinner */
+            .spinner-loading {
+                display: inline-block;
+                width: 1rem;
+                height: 1rem;
+                border: 2px solid #ffffff;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 1s linear infinite;
+                margin-right: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <header>
+                <h1>Bookmark Manager</h1>
+            </header>
+
+            <!-- Loading spinner -->
+            <div id="loading" class="spinner-container">
+                <div class="spinner"></div>
+                <p class="spinner-text">Fetching page details...</p>
+            </div>
+
+            <!-- Error message -->
+            <div id="error" class="error-message"></div>
+
+            <!-- Bookmark form -->
+            <form id="bookmarkForm" class="form">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" />
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">Tags (comma separated)</label>
+                    <input
+                        type="text"
+                        id="tags"
+                        placeholder="e.g. tech, article, reference"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label>Image Preview</label>
+                    <div id="imagePreview" class="image-preview">
+                        <p class="no-image-text" id="noImageText">
+                            No image available
+                        </p>
+                        <img
+                            id="previewImage"
+                            class="preview-image"
+                            src=""
+                            alt="Preview"
+                        />
+                    </div>
+                </div>
+
+                <!-- API URL config -->
+                <div class="form-group">
+                    <label for="apiUrl" class="small-label">Server URL</label>
+                    <input
+                        type="text"
+                        id="apiUrl"
+                        placeholder="http://localhost:3000"
+                    />
+                </div>
+
+                <div class="button-group">
+                    <button
+                        type="button"
+                        id="cancelButton"
+                        class="btn-secondary"
+                    >
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveButton" class="btn-primary">
+                        Save Bookmark
+                    </button>
+                </div>
+            </form>
+
+            <!-- Success message -->
+            <div id="success" class="success-container">
+                <div class="success-icon">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 13l4 4L19 7"
+                        />
+                    </svg>
+                </div>
+                <h2 class="success-title">Bookmark Saved!</h2>
+                <p class="success-message">
+                    Your bookmark has been added successfully.
+                </p>
+                <button id="doneButton" class="btn-primary">Done</button>
+            </div>
+        </div>
+        <script src="popup.js"></script>
+    </body>
+</html>

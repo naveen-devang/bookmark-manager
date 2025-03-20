@@ -1,0 +1,411 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bookmark Manager</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+        <style>
+            /* Masonry Grid Layout */
+            .masonry-grid {
+                column-count: 4;
+                column-gap: 1.5rem;
+                width: 100%;
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 1200px) {
+                .masonry-grid {
+                    column-count: 3;
+                }
+            }
+
+            @media (max-width: 900px) {
+                .masonry-grid {
+                    column-count: 2;
+                }
+            }
+
+            @media (max-width: 600px) {
+                .masonry-grid {
+                    column-count: 1;
+                }
+            }
+
+            /* Prevent cards from breaking across columns */
+            .masonry-item {
+                display: inline-block;
+                width: 100%;
+                margin-bottom: 1.5rem;
+                break-inside: avoid;
+            }
+
+            /* Animation for cards */
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .masonry-item {
+                animation: fadeInUp 0.5s ease forwards;
+                animation-delay: calc(var(--animation-order) * 0.1s);
+                opacity: 0;
+            }
+
+            /* Image hover effect - applying to the whole card */
+            .bookmark-image-container {
+                overflow: hidden;
+            }
+
+            .bookmark-image {
+                transition: transform 0.3s ease;
+            }
+
+            /* This is the key change - trigger the image transform when hovering the card */
+            .bookmark-card:hover .bookmark-image {
+                transform: scale(1.05);
+            }
+
+            /* Card hover effect - keep position stable but enhance shadow */
+            .bookmark-card {
+                transition: box-shadow 0.3s ease;
+            }
+
+            .bookmark-card:hover {
+                box-shadow:
+                    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+
+            .dark .bookmark-card:hover {
+                box-shadow:
+                    0 20px 25px -5px rgba(0, 0, 0, 0.3),
+                    0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            }
+            .description-text {
+                transition: all 0.3s ease;
+            }
+
+            /* Read more button hover effect */
+            .read-more-btn {
+                cursor: pointer;
+                display: inline-block;
+                margin-top: 0.25rem;
+                transition: color 0.2s ease;
+            }
+
+            /* Make the line-clamp transition smoother */
+            .description-container {
+                overflow: hidden;
+            }
+        </style>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: {
+                                DEFAULT: "#6366f1",
+                                dark: "#818cf8",
+                            },
+                            background: {
+                                light: "#f8fafc",
+                                dark: "#0f172a",
+                            },
+                            card: {
+                                light: "#ffffff",
+                                dark: "#1e293b",
+                            },
+                        },
+                        boxShadow: {
+                            card: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                            "card-dark":
+                                "0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)",
+                        },
+                        transitionProperty: {
+                            height: "height",
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body
+        class="bg-background-light text-slate-800 dark:bg-background-dark dark:text-slate-100"
+    >
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <header class="mb-12">
+                <div class="flex justify-between items-center px-4">
+                    <h1
+                        class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent"
+                    >
+                        Bookmark Manager
+                    </h1>
+                    <button
+                        id="themeToggle"
+                        class="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                        aria-label="Toggle dark mode"
+                    >
+                        <!-- Sun icon -->
+                        <svg
+                            class="sun-icon block dark:hidden"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line
+                                x1="4.22"
+                                y1="4.22"
+                                x2="5.64"
+                                y2="5.64"
+                            ></line>
+                            <line
+                                x1="18.36"
+                                y1="18.36"
+                                x2="19.78"
+                                y2="19.78"
+                            ></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line
+                                x1="4.22"
+                                y1="19.78"
+                                x2="5.64"
+                                y2="18.36"
+                            ></line>
+                            <line
+                                x1="18.36"
+                                y1="5.64"
+                                x2="19.78"
+                                y2="4.22"
+                            ></line>
+                        </svg>
+                        <!-- Moon icon -->
+                        <svg
+                            class="moon-icon hidden dark:block"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="mb-12">
+                <form id="bookmarkForm">
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+                        <input
+                            type="url"
+                            id="urlInput"
+                            placeholder="Enter URL to bookmark"
+                            required
+                            class="flex-1 px-6 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+                        />
+                        <button
+                            id="fetchUrlButton"
+                            type="button"
+                            class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl shadow-md transition-colors"
+                        >
+                            Fetch Details
+                        </button>
+                    </div>
+
+                    <div
+                        id="previewContainer"
+                        class="hidden mt-8 bg-card-light dark:bg-card-dark rounded-xl p-8 shadow-card dark:shadow-card-dark animate-fade-in"
+                    >
+                        <h2 class="text-xl font-bold mb-6 dark:text-white">
+                            Preview
+                        </h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div
+                                id="previewImageContainer"
+                                class="relative overflow-hidden rounded-xl shadow-card dark:shadow-card-dark"
+                            >
+                                <img
+                                    id="previewImage"
+                                    class="w-full h-full object-cover transition-transform hover:scale-105"
+                                    src="placeholder.jpg"
+                                    alt="Preview"
+                                />
+                            </div>
+
+                            <div class="md:col-span-2 flex flex-col gap-4">
+                                <div class="mb-6">
+                                    <label
+                                        for="previewTitle"
+                                        class="block mb-3 font-semibold dark:text-white"
+                                        >Title</label
+                                    >
+                                    <input
+                                        type="text"
+                                        id="previewTitle"
+                                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div class="mb-6">
+                                    <label
+                                        for="previewDescription"
+                                        class="block mb-3 font-semibold dark:text-white"
+                                        >Description</label
+                                    >
+                                    <textarea
+                                        id="previewDescription"
+                                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"
+                                    ></textarea>
+                                </div>
+
+                                <div class="mb-6">
+                                    <label
+                                        for="previewTags"
+                                        class="block mb-3 font-semibold dark:text-white"
+                                        >Tags (comma separated)</label
+                                    >
+                                    <input
+                                        type="text"
+                                        id="previewTags"
+                                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+                                    />
+                                </div>
+
+                                <div class="flex justify-end gap-4 mt-4">
+                                    <button
+                                        id="cancelBookmarkButton"
+                                        type="button"
+                                        class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        id="saveBookmarkButton"
+                                        type="button"
+                                        class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl shadow-md transition-colors"
+                                    >
+                                        Save Bookmark
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="masonry-grid" id="bookmarksContainer">
+                <!-- Bookmarks will be loaded here -->
+                <div
+                    id="loading"
+                    class="text-center py-12 text-slate-500 dark:text-slate-400 text-lg flex items-center justify-center gap-4"
+                >
+                    Loading bookmarks...
+                    <div
+                        class="animate-spin h-5 w-5 border-2 border-slate-500 dark:border-slate-400 rounded-full border-t-transparent"
+                    ></div>
+                </div>
+            </div>
+
+            <!-- Toast system -->
+            <div
+                id="toastViewport"
+                class="fixed bottom-8 right-8 flex flex-col gap-4 z-50"
+            ></div>
+
+            <!-- Modal dialog -->
+            <div
+                id="dialogOverlay"
+                class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"
+            ></div>
+            <div
+                id="dialogContent"
+                class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card-light dark:bg-card-dark text-slate-800 dark:text-slate-100 p-10 rounded-xl shadow-card dark:shadow-card-dark max-w-[550px] w-[90%] z-50 hidden opacity-0 scale-95 transition-all"
+            >
+                <h2 class="text-2xl font-extrabold mb-6 dark:text-white">
+                    Edit Bookmark
+                </h2>
+                <form id="editForm">
+                    <input type="hidden" id="editId" />
+                    <div class="mb-6">
+                        <label
+                            for="editTitle"
+                            class="block mb-3 font-semibold dark:text-white"
+                            >Title</label
+                        >
+                        <input
+                            type="text"
+                            id="editTitle"
+                            required
+                            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+                        />
+                    </div>
+                    <div class="mb-6">
+                        <label
+                            for="editDescription"
+                            class="block mb-3 font-semibold dark:text-white"
+                            >Description</label
+                        >
+                        <textarea
+                            id="editDescription"
+                            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"
+                        ></textarea>
+                    </div>
+                    <div class="mb-6">
+                        <label
+                            for="editTags"
+                            class="block mb-3 font-semibold dark:text-white"
+                            >Tags (comma separated)</label
+                        >
+                        <input
+                            type="text"
+                            id="editTags"
+                            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+                        />
+                    </div>
+                    <div class="flex justify-end gap-4 mt-8">
+                        <button
+                            type="button"
+                            class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+                            id="dialogClose"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl shadow-md transition-colors"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script src="app.js"></script>
+    </body>
+</html>
