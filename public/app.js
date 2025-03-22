@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error initializing application:", error);
     document.body.innerHTML = `
       <div class="flex justify-center items-center h-screen">
-        <div class="text-center p-8 bg-red-50 dark:bg-red-900/20 rounded-xl max-w-md">
+        <div class="text-center p-8 bg-red-50 dark:bg-red-900/20 rounded-xl max-w-md border border-red-200 dark:border-red-800">
           <h2 class="text-xl font-bold text-red-700 dark:text-red-400 mb-4">Application Error</h2>
           <p class="text-slate-700 dark:text-slate-300">Failed to initialize the application. Please try refreshing the page.</p>
         </div>
@@ -54,6 +54,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const editDescription = document.getElementById("editDescription");
   const editTags = document.getElementById("editTags");
 
+  const addDialogOverlay = document.getElementById("addDialogOverlay");
+  const addDialogContent = document.getElementById("addDialogContent");
+  const addDialogClose = document.getElementById("addDialogClose");
+  const addBookmarkForm = document.getElementById("addBookmarkForm");
+  const addTitle = document.getElementById("addTitle");
+  const addDescription = document.getElementById("addDescription");
+  const addTags = document.getElementById("addTags");
+  
+
   // Toast viewport
   const toastViewport = document.getElementById("toastViewport");
 
@@ -62,6 +71,256 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pageSize = 12; // Number of bookmarks per page
   let isLoading = false;
   let hasMoreBookmarks = true;
+
+  const fetchButton = document.getElementById("fetchUrlButton");
+  // Wrap the text content in a span for proper z-indexing
+  const buttonText = fetchButton.textContent;
+  fetchButton.innerHTML = `<span>${buttonText}</span>`;
+
+  // Initialize Three.js
+  const scene = new THREE.Scene();
+
+  // Use an orthographic camera for full coverage
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+  });
+
+  // Configure renderer
+  const container = document.getElementById("background-canvas");
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0); // Transparent background
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // Apply styles directly to the canvas
+  const canvas = renderer.domElement;
+  canvas.style.position = "absolute";
+  canvas.style.left = "0";
+  canvas.style.top = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.zIndex = "-1";
+
+  // Create shader material with more dynamic animation
+  const vertexShader = `
+    varying vec2 vUv;
+
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    uniform float time;
+    uniform vec3 colorA;
+    uniform vec3 colorB;
+    uniform vec3 colorC;
+    uniform vec3 colorD;
+    uniform vec2 resolution;
+    varying vec2 vUv;
+
+    // 2D Noise function
+    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+    float snoise(vec2 v) {
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                 -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy) );
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1;
+      i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod289(i);
+      vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+        + i.x + vec3(0.0, i1.x, 1.0 ));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+        dot(x12.zw,x12.zw)), 0.0);
+      m = m*m;
+      m = m*m;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    // Function to create flowing shapes
+    float flowingField(vec2 uv, float time) {
+      // Create multiple layers of noise with different speeds and scales
+      float noise1 = snoise(uv * 1.5 + vec2(time * 0.1, time * 0.08));
+      float noise2 = snoise(uv * 2.3 + vec2(-time * 0.15, time * 0.12));
+      float noise3 = snoise(uv * 3.7 + vec2(time * 0.2, -time * 0.14));
+
+      // Combine noise layers for more interesting patterns
+      return (noise1 + noise2 * 0.8 + noise3 * 0.6) / 2.4;
+    }
+
+    // Function to create moving blob shapes
+    float blob(vec2 uv, vec2 center, float radius, float fuzziness) {
+      float dist = length(uv - center);
+      return smoothstep(radius, radius + fuzziness, dist);
+    }
+
+    void main() {
+      // Create aspect-correct UV coordinates
+      vec2 uv = vUv;
+
+      // Time variables for different animation speeds
+      float slowTime = time * 0.15;
+      float mediumTime = time * 0.3;
+      float fastTime = time * 0.5;
+
+      // Create multiple flowing fields with different parameters
+      float flow1 = flowingField(uv, slowTime);
+      float flow2 = flowingField(uv * 1.3 + 150.0, mediumTime);
+
+      // Create moving blobs
+      vec2 blob1Center = vec2(
+        0.5 + 0.25 * sin(slowTime),
+        0.5 + 0.25 * cos(slowTime * 0.7)
+      );
+
+      vec2 blob2Center = vec2(
+        0.5 + 0.3 * cos(slowTime * 0.8),
+        0.5 + 0.3 * sin(slowTime * 1.2)
+      );
+
+      vec2 blob3Center = vec2(
+        0.5 + 0.2 * sin(slowTime * 1.3),
+        0.5 + 0.2 * cos(slowTime)
+      );
+
+      // Create soft-edged blobs that interact with the flow fields
+      float blob1 = blob(uv, blob1Center, 0.1 + 0.05 * sin(fastTime), 0.6);
+      float blob2 = blob(uv, blob2Center, 0.15 + 0.07 * cos(fastTime * 1.2), 0.5);
+      float blob3 = blob(uv, blob3Center, 0.12 + 0.06 * sin(fastTime * 0.7), 0.4);
+
+      // Combine blobs with flow fields to create movement interactions
+      float combinedField = flow1 * flow2;
+      float blobField = blob1 * blob2 * blob3;
+
+      // Create motion distortion by offsetting UVs with flow field
+      vec2 distortedUV = uv + vec2(
+        0.02 * sin(flow1 * 6.28 + mediumTime),
+        0.02 * cos(flow2 * 6.28 + mediumTime)
+      );
+
+      // Add waves that move across the screen
+      float wave1 = 0.5 + 0.5 * sin(distortedUV.x * 5.0 + slowTime);
+      float wave2 = 0.5 + 0.5 * cos(distortedUV.y * 4.0 - slowTime * 1.2);
+
+      // Create dynamic color mixing with moving gradients
+      vec3 color1 = mix(colorA, colorB, wave1 * blobField);
+      vec3 color2 = mix(colorC, colorD, wave2 * (1.0 - blobField));
+
+      // Final color with dynamic blending
+      vec3 finalColor = mix(color1, color2, flow1 * 0.5 + 0.5);
+
+      // Add highlights that move with the flow
+      float highlight = smoothstep(0.4, 0.6, flow2 * wave1 * wave2);
+      finalColor = mix(finalColor, vec3(1.0), highlight * 0.15);
+
+      // Apply subtle vignette
+      float vignette = smoothstep(0.0, 0.7, length(uv - 0.5));
+      finalColor = mix(finalColor, finalColor * 0.8, vignette * 0.5);
+
+      gl_FragColor = vec4(finalColor, 0.95);
+    }
+  `;
+
+  // Create shader material with uniforms for colors and resolution
+  const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      resolution: {
+        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      },
+      colorA: { value: new THREE.Color(0x6366f1) }, // indigo
+      colorB: { value: new THREE.Color(0xa855f7) }, // purple
+      colorC: { value: new THREE.Color(0x3b82f6) }, // blue
+      colorD: { value: new THREE.Color(0xec4899) }, // pink
+    },
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    transparent: true,
+  });
+
+  // Create a plane that fills the camera view
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const plane = new THREE.Mesh(geometry, shaderMaterial);
+  scene.add(plane);
+
+  // Position camera
+  camera.position.z = 1;
+
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+
+    // Update time uniform for animation
+    shaderMaterial.uniforms.time.value += 0.01; // Increased speed for more visible movement
+
+    // Check if dark mode is active to adjust colors
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    if (isDarkMode) {
+      // Deeper, richer colors for dark mode
+      shaderMaterial.uniforms.colorA.value.set(0x312e81); // deep indigo
+      shaderMaterial.uniforms.colorB.value.set(0x4c1d95); // deep purple
+      shaderMaterial.uniforms.colorC.value.set(0x1e3a8a); // deep blue
+      shaderMaterial.uniforms.colorD.value.set(0x831843); // deep pink
+    } else {
+      // Lighter colors for light mode
+      shaderMaterial.uniforms.colorA.value.set(0x818cf8); // light indigo
+      shaderMaterial.uniforms.colorB.value.set(0xc084fc); // light purple
+      shaderMaterial.uniforms.colorC.value.set(0x93c5fd); // light blue
+      shaderMaterial.uniforms.colorD.value.set(0xfbcfe8); // light pink
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // Proper resize handler
+  function handleResize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Update renderer size
+    renderer.setSize(width, height);
+
+    // Update resolution uniform
+    shaderMaterial.uniforms.resolution.value.set(width, height);
+
+    // Update camera
+    camera.updateProjectionMatrix();
+  }
+
+  // Handle window resize
+  window.addEventListener("resize", handleResize);
+
+  // Reduce quality on mobile for better performance
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    renderer.setPixelRatio(1);
+  }
+
+  // Start animation
+  animate();
+
+  // Update colors when theme changes
+  document.getElementById("themeToggle").addEventListener("click", function () {
+    // Colors will update in the next animation frame
+  });
 
   // Create a loading indicator for infinite scroll
   const scrollLoadingIndicator = document.createElement("div");
@@ -78,7 +337,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Create back to top button
   const backToTopButton = document.createElement("button");
   backToTopButton.className =
-    "fixed bottom-8 right-8 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full p-3 shadow-lg transition-all duration-300 opacity-0 translate-y-10 z-20";
+    "fixed bottom-24 right-8 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full p-3 transition-all duration-300 opacity-0 translate-y-10 z-20 border border-indigo-200 dark:border-indigo-900";
   backToTopButton.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="18 15 12 9 6 15"></polyline>
@@ -95,6 +354,77 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Metadata storage
   let currentMetadata = null;
+
+  let masonryGrid;
+
+  function initMasonry() {
+    const grid = document.querySelector(".masonry-grid");
+    if (!grid) return;
+
+    // Initialize Masonry with options
+    masonryGrid = new Masonry(grid, {
+      itemSelector: ".masonry-item",
+      columnWidth: ".masonry-item",
+      percentPosition: true,
+      gutter: 16, // This should match your CSS gap value (1rem = 16px)
+      transitionDuration: "0.2s",
+    });
+
+    // Use imagesLoaded to prevent layout issues with images
+    imagesLoaded(grid).on("progress", function () {
+      masonryGrid.layout();
+    });
+  }
+
+  document.addEventListener(
+    "load",
+    (event) => {
+      if (event.target.tagName === "IMG" && masonryGrid) {
+        masonryGrid.layout();
+      }
+    },
+    true,
+  );
+
+  // Pastel colors for cards
+  const pastelColors = [
+    {
+      light: "bg-pastel-blue-light",
+      dark: "dark:bg-pastel-blue-light",
+      border: "border-blue-200 dark:border-blue-400",
+      textColor: "text-slate-800 dark:text-slate-900", // Added text color
+    },
+    {
+      light: "bg-pastel-green-light",
+      dark: "dark:bg-pastel-green-light",
+      border: "border-green-200 dark:border-green-400",
+      textColor: "text-slate-800 dark:text-slate-900",
+    },
+    {
+      light: "bg-pastel-pink-light",
+      dark: "dark:bg-pastel-pink-light",
+      border: "border-pink-200 dark:border-pink-400",
+      textColor: "text-slate-800 dark:text-slate-900",
+    },
+    {
+      light: "bg-pastel-purple-light",
+      dark: "dark:bg-pastel-purple-light",
+      border: "border-purple-200 dark:border-purple-400",
+      textColor: "text-slate-800 dark:text-slate-900",
+    },
+    {
+      light: "bg-pastel-yellow-light",
+      dark: "dark:bg-pastel-yellow-light",
+      border: "border-yellow-200 dark:border-yellow-400",
+      textColor: "text-slate-800 dark:text-slate-900",
+    },
+    {
+      light: "bg-pastel-orange-light",
+      dark: "dark:bg-pastel-orange-light",
+      border: "border-orange-200 dark:border-orange-400",
+      textColor: "text-slate-800 dark:text-slate-900",
+    },
+  ];
 
   if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
     document.documentElement.classList.add("dark");
@@ -120,106 +450,138 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!url) return;
 
     try {
-      showToast("Fetching URL details...", "info");
+        showToast("Fetching URL details...", "info");
 
-      // Call the API to fetch URL metadata
-      const response = await fetch("/api/fetch-metadata", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-      });
+        const response = await fetch("/api/fetch-metadata", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch URL details");
-      }
+        if (!response.ok) {
+            throw new Error("Failed to fetch URL details");
+        }
 
-      const metadata = await response.json();
-      currentMetadata = metadata;
+        const metadata = await response.json();
 
-      // Show preview
-      previewTitle.value = metadata.title || "";
-      previewDescription.value = metadata.description || "";
-      previewTags.value = "";
+        // Populate form fields
+        addTitle.value = metadata.title || "";
+        addDescription.value = metadata.description || "";
+        addTags.value = "";
 
-      if (metadata.image) {
-        previewImage.src = metadata.image;
-        previewImage.style.display = "block";
-      } else {
-        previewImage.src = "placeholder.jpg";
-        previewImage.style.display = "block";
-      }
+        // Handle preview image
+        const previewImage = document.getElementById("addPreviewImage");
+        const previewImageContainer = document.getElementById("addPreviewImageContainer");
 
-      // Show preview container
-      previewContainer.classList.remove("hidden");
-      showToast("URL details fetched! You can edit before saving.", "success");
+        if (metadata.image) {
+            previewImage.src = metadata.image;
+            previewImage.style.display = "block";
+
+            // Wait for the image to load before adjusting size
+            previewImage.onload = function () {
+                const naturalWidth = previewImage.naturalWidth;
+                const naturalHeight = previewImage.naturalHeight;
+
+                // Apply actual dimensions
+                previewImage.style.width = `${naturalWidth}px`;
+                previewImage.style.height = `${naturalHeight}px`;
+
+                // Show the container
+                previewImageContainer.classList.remove("hidden");
+            };
+        } else {
+            previewImageContainer.classList.add("hidden");
+        }
+
+        // Show overlay
+        addDialogOverlay.classList.remove("hidden");
+        addDialogContent.classList.remove("hidden");
+
+        // Trigger reflow for smooth animation
+        void addDialogOverlay.offsetWidth;
+        void addDialogContent.offsetWidth;
+
+        addDialogOverlay.classList.add("opacity-100");
+        addDialogContent.classList.add("opacity-100", "scale-100");
+
+        showToast("URL details fetched! You can edit before saving.", "success");
     } catch (error) {
-      console.error("Error fetching URL details:", error);
-      showToast(error.message || "Failed to fetch URL details", "error");
+        console.error("Error fetching URL details:", error);
+        showToast("Failed to fetch URL details", "error");
     }
-  });
+});
 
-  // Save bookmark when form is submitted
-  saveBookmarkButton.addEventListener("click", async () => {
-    const url = urlInput.value.trim();
 
-    if (!url || !currentMetadata) return;
 
-    try {
+addBookmarkForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const url = urlInput.value.trim();
+  const title = addTitle.value.trim();
+  const description = addDescription.value.trim();
+  const tagsString = addTags.value.trim();
+  const tags = tagsString ? tagsString.split(",").map(tag => tag.trim()) : [];
+
+  // Get image URL
+  let image_url = document.getElementById("addPreviewImage").src;
+  if (!image_url || image_url.includes("default.png")) {
+      image_url = null;
+  }
+
+  try {
       showToast("Adding bookmark...", "info");
 
-      // Get edited values
-      const title = previewTitle.value.trim();
-      const description = previewDescription.value.trim();
-      const tagsString = previewTags.value.trim();
-      const tags = tagsString
-        ? tagsString.split(",").map((tag) => tag.trim())
-        : [];
-      const image_url =
-        previewImage.src !== "placeholder.jpg" ? previewImage.src : null;
-
-      // Call the API to save bookmark with edited metadata
       const response = await fetch("/api/bookmarks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url,
-          title,
-          description,
-          image_url,
-          tags,
-        }),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, title, description, image_url, tags }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add bookmark");
+          throw new Error("Failed to add bookmark");
       }
 
-      const data = await response.json();
+      const newBookmark = await response.json();
 
-      // Clear form and preview
+      // Close the modal
+      closeAddDialog();
+
+      // Clear input fields
       urlInput.value = "";
-      previewContainer.classList.add("hidden");
-      // Reset the preview image to avoid caching issues
-      previewImage.src = "placeholder.jpg";
-      previewTitle.value = "";
-      previewDescription.value = "";
-      previewTags.value = "";
-      currentMetadata = null;
+      addTitle.value = "";
+      addDescription.value = "";
+      addTags.value = "";
+      document.getElementById("addPreviewImage").src = ""; // Reset image
 
-      // Add the new bookmark to the UI
-      addBookmarkToUI(data, 0, true);
+      // ✅ Add the new bookmark to the UI instantly
+      addBookmarkToUI(newBookmark, 0, true);
+
       showToast("Bookmark added successfully!", "success");
-    } catch (error) {
+  } catch (error) {
       console.error("Error adding bookmark:", error);
-      showToast(error.message || "Failed to add bookmark", "error");
-    }
-  });
+      showToast("Failed to add bookmark", "error");
+  }
+});
+
+
+
+
+function closeAddDialog() {
+  addDialogOverlay.classList.remove("opacity-100");
+  addDialogContent.classList.remove("opacity-100", "scale-100");
+
+  setTimeout(() => {
+      addDialogOverlay.classList.add("hidden");
+      addDialogContent.classList.add("hidden");
+  }, 300);
+}
+
+addDialogClose.addEventListener("click", closeAddDialog);
+addDialogOverlay.addEventListener("click", closeAddDialog);
+
+
+
+  // Save bookmark when form is submitted
 
   // Allow enter key to trigger fetch URL button
   urlInput.addEventListener("keypress", (e) => {
@@ -229,19 +591,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Cancel bookmark addition
-  document
-    .getElementById("cancelBookmarkButton")
-    .addEventListener("click", () => {
-      urlInput.value = "";
-      previewContainer.classList.add("hidden");
-      // Reset the preview image and all fields
-      previewImage.src = "placeholder.jpg";
-      previewTitle.value = "";
-      previewDescription.value = "";
-      previewTags.value = "";
-      currentMetadata = null;
-    });
 
   // Fetch all bookmarks
   async function fetchBookmarks(reset = true) {
@@ -249,15 +598,48 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (reset) {
         currentPage = 1;
         hasMoreBookmarks = true;
-        bookmarksContainer.innerHTML = ""; // Clear the container
-        loading.style.display = "flex"; // Show initial loading indicator
+
+        // Clear the container but keep the grid-sizer and gutter-sizer
+        const gridSizer = document.querySelector(".grid-sizer");
+        const gutterSizer = document.querySelector(".gutter-sizer");
+        const loadingElem = document.getElementById("loading");
+
+        bookmarksContainer.innerHTML = "";
+
+        // Re-add the required elements
+        if (gridSizer && gutterSizer) {
+          bookmarksContainer.appendChild(gridSizer.cloneNode(true));
+          bookmarksContainer.appendChild(gutterSizer.cloneNode(true));
+        } else {
+          // First time - add the required elements
+          const newGridSizer = document.createElement("div");
+          newGridSizer.className = "grid-sizer";
+
+          const newGutterSizer = document.createElement("div");
+          newGutterSizer.className = "gutter-sizer";
+
+          bookmarksContainer.appendChild(newGridSizer);
+          bookmarksContainer.appendChild(newGutterSizer);
+        }
+
+        // Add loading indicator back
+        if (loadingElem) {
+          bookmarksContainer.appendChild(loadingElem);
+          loadingElem.style.display = "flex";
+        }
+
+        // Destroy existing masonry instance if exists
+        if (masonryGrid) {
+          masonryGrid.destroy();
+          masonryGrid = null;
+        }
       } else {
         scrollLoadingIndicator.classList.remove("hidden");
       }
 
       isLoading = true;
 
-      // Modify your fetch call to include pagination parameters
+      // Fetch bookmarks from API
       const response = await fetch(
         `/api/bookmarks?page=${currentPage}&limit=${pageSize}`,
       );
@@ -267,14 +649,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       const data = await response.json();
-      const bookmarks = data.bookmarks || data; // Handle both formats
+      const bookmarks = data.bookmarks || data;
 
       // Check if there are more bookmarks
       hasMoreBookmarks =
         Array.isArray(bookmarks) && bookmarks.length === pageSize;
 
-      // Remove loading indicators
-      loading.style.display = "none";
+      // Hide loading indicators
+      const loadingElement = document.getElementById("loading");
+      if (loadingElement) {
+        loadingElement.style.display = "none";
+      }
       scrollLoadingIndicator.classList.add("hidden");
 
       // Show no bookmarks message if needed
@@ -283,11 +668,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         bookmarks.length === 0 &&
         currentPage === 1
       ) {
-        bookmarksContainer.innerHTML = `
-          <div class="col-span-full text-center py-12 bg-card-light dark:bg-card-dark rounded-xl shadow-card dark:shadow-card-dark text-slate-500 dark:text-slate-400 text-lg relative overflow-hidden">
-            No bookmarks yet. Add your first bookmark above!
-          </div>
-        `;
+        // Create a placeholder element that spans full width
+        const noBookmarksMessage = document.createElement("div");
+        noBookmarksMessage.className = "masonry-item w-full";
+        noBookmarksMessage.style.width = "100%";
+        noBookmarksMessage.innerHTML = `
+                  <div class="text-center py-12 bg-pastel-blue-light dark:bg-pastel-blue-dark rounded-xl text-slate-700 dark:text-slate-300 text-lg relative overflow-hidden border border-blue-200 dark:border-blue-900">
+                      No bookmarks yet. Add your first bookmark above!
+                  </div>
+              `;
+        bookmarksContainer.appendChild(noBookmarksMessage);
         return;
       }
 
@@ -298,10 +688,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
       }
 
+      // Initialize or update Masonry layout
+      if (reset) {
+        // Initialize Masonry after the first batch of items is loaded
+        setTimeout(initMasonry, 100);
+      } else if (masonryGrid) {
+        // For subsequent pages, just update the layout
+        setTimeout(() => {
+          masonryGrid.layout();
+        }, 100);
+      }
+
       isLoading = false;
     } catch (error) {
       console.error("Error fetching bookmarks:", error);
-      loading.textContent = "Failed to load bookmarks. Please try again.";
+      const loadingElement = document.getElementById("loading");
+      if (loadingElement) {
+        loadingElement.textContent =
+          "Failed to load bookmarks. Please try again.";
+      }
       scrollLoadingIndicator.classList.add("hidden");
       isLoading = false;
     }
@@ -318,51 +723,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Add a bookmark to the UI
   function addBookmarkToUI(bookmark, index = 0, isNewBookmark = false) {
     const bookmarkCard = document.createElement("div");
-    bookmarkCard.className = "masonry-item";
+    bookmarkCard.className = "masonry-item is-visible";
     bookmarkCard.dataset.id = bookmark.id;
-    bookmarkCard.style.setProperty("--animation-order", index % 10); // Limit animation delay
 
-    const imageUrl = bookmark.image_url || "placeholder.jpg";
+    const imageUrl = bookmark.image_url || "default.png";
     const title = bookmark.title || "Untitled";
-    const description = bookmark.description || "No description";
+    const description = bookmark.description || "No description available";
     const domain = new URL(bookmark.url).hostname.replace("www.", "");
     const date = new Date(bookmark.created_at).toLocaleDateString();
 
     // Create tags HTML if available
     let tagsHtml = "";
     if (bookmark.tags && bookmark.tags.length > 0) {
-      tagsHtml = `
-              <div class="flex flex-wrap gap-2 mt-4">
-                  ${bookmark.tags.map((tag) => `<span class="py-1 px-3 rounded-full text-xs bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-gradient-to-r hover:from-indigo-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all">${tag}</span>`).join("")}
-              </div>
-          `;
+        tagsHtml = `<div class="flex flex-wrap gap-2 mt-4">
+            ${bookmark.tags.map(tag => `<span class="py-1 px-3 rounded-full text-xs tag-pill bg-indigo-200 text-indigo-800">${tag}</span>`).join("")}
+        </div>`;
     }
 
     bookmarkCard.innerHTML = `
-          <div class="bookmark-card bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-card dark:shadow-card-dark">
-              <div class="bookmark-image-container">
-                  <img class="bookmark-image w-full h-auto object-cover bg-slate-100 dark:bg-slate-800" src="${imageUrl}" alt="${title}" onerror="this.src='placeholder.jpg'">
-              </div>
-              <div class="p-6">
-                  <h3 class="text-xl font-bold mb-3 break-words">
-                      <a href="${bookmark.url}" class="text-slate-800 dark:text-slate-100 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors" target="_blank" rel="noopener noreferrer">${title}</a>
-                  </h3>
-                  <div class="description-container">
-                      <p class="text-slate-500 dark:text-slate-400 mb-2 line-clamp-3 description-text">${description}</p>
-                      <button class="read-more-btn text-indigo-500 dark:text-indigo-400 text-sm font-medium hover:underline hidden">Read more</button>
-                  </div>
-                  ${tagsHtml}
-                  <div class="flex justify-between items-center text-sm text-slate-400 dark:text-slate-500 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <span>${domain}</span>
-                      <span>${date}</span>
-                  </div>
-                  <div class="flex gap-4 mt-6">
-                      <button class="text-slate-500 dark:text-slate-400 font-semibold text-sm hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors edit-button" data-id="${bookmark.id}">Edit</button>
-                      <button class="text-slate-500 dark:text-slate-400 font-semibold text-sm hover:text-red-500 dark:hover:text-red-400 transition-colors delete-button" data-id="${bookmark.id}">Delete</button>
-                  </div>
-              </div>
-          </div>
-      `;
+        <div class="bookmark-card rounded-xl overflow-hidden relative bg-white shadow-md border border-gray-200 transition-all hover:shadow-lg">
+            <div class="bookmark-image-container">
+                <img class="bookmark-image w-full h-auto object-cover bg-gray-100" src="${imageUrl}" alt="${title}" onerror="this.src='default.png'">
+            </div>
+            <div class="p-6">
+                <h3 class="text-xl font-bold mb-3 break-words">
+                    <a href="${bookmark.url}" class="text-gray-800 hover:text-indigo-500 transition" target="_blank">${title}</a>
+                </h3>
+                <div class="description-container">
+                    <p class="text-gray-600 mb-2 line-clamp-3 description-text">${description}</p>
+                    <button class="read-more-btn text-indigo-500 text-sm font-medium hover:underline hidden">Read more</button>
+                </div>
+                ${tagsHtml}
+                <div class="flex justify-between items-center text-sm text-gray-500 mt-4 pt-4 border-t border-gray-200">
+                    <span>${domain}</span>
+                    <span>${date}</span>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button class="text-gray-600 hover:text-indigo-500 edit-button" data-id="${bookmark.id}">Edit</button>
+                    <button class="text-gray-600 hover:text-red-500 delete-button" data-id="${bookmark.id}">Delete</button>
+                </div>
+            </div>
+        </div>
+    `;
 
     // Add event listeners for edit and delete buttons
     const editButton = bookmarkCard.querySelector(".edit-button");
@@ -371,38 +773,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     editButton.addEventListener("click", () => openEditDialog(bookmark));
     deleteButton.addEventListener("click", () => deleteBookmark(bookmark.id));
 
-    // Add event listener for read more button
+    // Handle "Read More" functionality
     const descriptionText = bookmarkCard.querySelector(".description-text");
     const readMoreBtn = bookmarkCard.querySelector(".read-more-btn");
 
-    // Check if description needs a "Read more" button (if it's likely to exceed 3 lines)
     if (description.length > 150) {
-      readMoreBtn.classList.remove("hidden");
+        readMoreBtn.classList.remove("hidden");
 
-      // Toggle between expanded and collapsed state
-      readMoreBtn.addEventListener("click", function () {
-        if (descriptionText.classList.contains("line-clamp-3")) {
-          // Expand
-          descriptionText.classList.remove("line-clamp-3");
-          this.textContent = "Read less";
-        } else {
-          // Collapse
-          descriptionText.classList.add("line-clamp-3");
-          this.textContent = "Read more";
-        }
-      });
+        readMoreBtn.addEventListener("click", function () {
+            if (descriptionText.classList.contains("line-clamp-3")) {
+                descriptionText.classList.remove("line-clamp-3");
+                this.textContent = "Read less";
+            } else {
+                descriptionText.classList.add("line-clamp-3");
+                this.textContent = "Read more";
+            }
+
+            // Ensure Masonry layout updates after expanding/collapsing
+            if (typeof masonryGrid !== "undefined" && masonryGrid) {
+                setTimeout(() => masonryGrid.layout(), 50);
+            }
+        });
     }
 
-    // If it's a new bookmark (not from pagination), insert at the beginning
-    if (isNewBookmark && bookmarksContainer.children.length > 0) {
-      bookmarksContainer.insertBefore(
-        bookmarkCard,
-        bookmarksContainer.firstChild,
-      );
-    } else {
-      bookmarksContainer.appendChild(bookmarkCard);
+    // ✅ Insert at the top (so the newest bookmark appears first)
+    bookmarksContainer.append(bookmarkCard);
+
+    // ✅ Update Masonry grid (if used)
+    if (typeof masonryGrid !== "undefined" && masonryGrid) {
+        masonryGrid.prepended([bookmarkCard]);
+        setTimeout(() => masonryGrid.layout(), 100);
     }
-  }
+
+    // Ensure image loads correctly for Masonry layout
+    const cardImage = bookmarkCard.querySelector(".bookmark-image");
+    if (cardImage) {
+        cardImage.onload = function () {
+            if (typeof masonryGrid !== "undefined" && masonryGrid) {
+                masonryGrid.layout();
+            }
+        };
+    }
+}
+
 
   // Delete a bookmark
   async function deleteBookmark(id) {
@@ -420,15 +833,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Remove the bookmark from the UI
       const bookmarkCard = document.querySelector(`[data-id="${id}"]`);
       if (bookmarkCard) {
-        bookmarkCard.remove();
+        // If Masonry is initialized, use its method to remove the element
+        if (masonryGrid) {
+          masonryGrid.remove(bookmarkCard);
+          // Allow time for the removal animation before updating layout
+          setTimeout(() => {
+            masonryGrid.layout();
+          }, 300);
+        } else {
+          // Fallback for when Masonry is not available
+          bookmarkCard.remove();
+        }
       }
 
       showToast("Bookmark deleted successfully!", "success");
 
       // Check if we need to show the no bookmarks message
       if (bookmarksContainer.children.length === 0) {
-        bookmarksContainer.innerHTML =
-          '<div class="col-span-full text-center py-12 bg-card-light dark:bg-card-dark rounded-xl shadow-card dark:shadow-card-dark text-slate-500 dark:text-slate-400 text-lg relative overflow-hidden">No bookmarks yet. Add your first bookmark above!</div>';
+        bookmarksContainer.innerHTML = `
+          <div class="col-span-full text-center py-12 bg-pastel-blue-light dark:bg-pastel-blue-dark rounded-xl text-slate-700 dark:text-slate-300 text-lg relative overflow-hidden border border-blue-200 dark:border-blue-900">
+            No bookmarks yet. Add your first bookmark above!
+          </div>
+        `;
       }
     } catch (error) {
       console.error("Error deleting bookmark:", error);
@@ -521,7 +947,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function showToast(message, type = "info") {
     // Create toast element
     const toast = document.createElement("div");
-    toast.className = `flex items-center gap-4 p-5 rounded-xl shadow-lg mb-4 transform translate-x-full transition-all duration-500 ease-out max-w-md relative overflow-hidden ${getToastClass(type)}`;
+    toast.className = `flex items-center gap-4 p-5 rounded-xl mb-4 transform translate-x-full transition-all duration-500 ease-out max-w-md relative overflow-hidden ${getToastClass(type)}`;
 
     // Add left border color based on type
     toast.innerHTML = `
@@ -571,12 +997,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   function getToastClass(type) {
     switch (type) {
       case "success":
-        return "bg-white dark:bg-slate-800 border-l-4 border-green-500";
+        return "bg-pastel-green-light dark:bg-pastel-green-dark border border-green-200 dark:border-green-900";
       case "error":
-        return "bg-white dark:bg-slate-800 border-l-4 border-red-500";
+        return "bg-pastel-pink-light dark:bg-pastel-pink-dark border border-pink-200 dark:border-pink-900";
       case "info":
       default:
-        return "bg-white dark:bg-slate-800 border-l-4 border-indigo-500";
+        return "bg-pastel-blue-light dark:bg-pastel-blue-dark border border-blue-200 dark:border-blue-900";
     }
   }
 
@@ -595,18 +1021,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (scrollY + windowHeight >= documentHeight - 200) {
       loadMoreBookmarks();
     }
-  }
 
-  // Show/hide back to top button based on scroll position
-  window.addEventListener("scroll", function () {
-    if (window.scrollY > 500) {
+    // Show/hide back to top button based on scroll position
+    if (scrollY > 500) {
       backToTopButton.classList.remove("opacity-0", "translate-y-10");
       backToTopButton.classList.add("opacity-100", "translate-y-0");
     } else {
       backToTopButton.classList.add("opacity-0", "translate-y-10");
       backToTopButton.classList.remove("opacity-100", "translate-y-0");
     }
-  });
+  }
 
   // Scroll to top when button is clicked
   backToTopButton.addEventListener("click", function () {
