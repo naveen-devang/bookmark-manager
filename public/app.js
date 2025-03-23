@@ -72,14 +72,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   let hasMoreBookmarks = true;
 
   const fetchButton = document.getElementById("fetchUrlButton");
-  // Wrap the text content in a span for proper z-indexing
   const buttonText = fetchButton.textContent;
   fetchButton.innerHTML = `<span>${buttonText}</span>`;
 
   // Initialize Three.js
   const scene = new THREE.Scene();
 
-  // Use an orthographic camera for full coverage
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 
   const renderer = new THREE.WebGLRenderer({
@@ -103,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   canvas.style.height = "100%";
   canvas.style.zIndex = "-1";
 
-  // Create shader material with more dynamic animation
+  // Shader material with more dynamic animation
   const vertexShader = `
     varying vec2 vUv;
 
@@ -156,12 +154,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Function to create flowing shapes
     float flowingField(vec2 uv, float time) {
-      // Create multiple layers of noise with different speeds and scales
+      // Multiple layers of noise with different speeds and scales
       float noise1 = snoise(uv * 1.5 + vec2(time * 0.1, time * 0.08));
       float noise2 = snoise(uv * 2.3 + vec2(-time * 0.15, time * 0.12));
       float noise3 = snoise(uv * 3.7 + vec2(time * 0.2, -time * 0.14));
 
-      // Combine noise layers for more interesting patterns
+      // Combined noise layers for more interesting patterns
       return (noise1 + noise2 * 0.8 + noise3 * 0.6) / 2.4;
     }
 
@@ -172,7 +170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     void main() {
-      // Create aspect-correct UV coordinates
+      // Aspect-correct UV coordinates
       vec2 uv = vUv;
 
       // Time variables for different animation speeds
@@ -180,7 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       float mediumTime = time * 0.3;
       float fastTime = time * 0.5;
 
-      // Create multiple flowing fields with different parameters
+      // Multiple flowing fields with different parameters
       float flow1 = flowingField(uv, slowTime);
       float flow2 = flowingField(uv * 1.3 + 150.0, mediumTime);
 
@@ -200,37 +198,37 @@ document.addEventListener("DOMContentLoaded", async () => {
         0.5 + 0.2 * cos(slowTime)
       );
 
-      // Create soft-edged blobs that interact with the flow fields
+      // Soft-edged blobs that interact with the flow fields
       float blob1 = blob(uv, blob1Center, 0.1 + 0.05 * sin(fastTime), 0.6);
       float blob2 = blob(uv, blob2Center, 0.15 + 0.07 * cos(fastTime * 1.2), 0.5);
       float blob3 = blob(uv, blob3Center, 0.12 + 0.06 * sin(fastTime * 0.7), 0.4);
 
-      // Combine blobs with flow fields to create movement interactions
+      // Blobs with flow fields to create movement interactions
       float combinedField = flow1 * flow2;
       float blobField = blob1 * blob2 * blob3;
 
-      // Create motion distortion by offsetting UVs with flow field
+      // Motion distortion by offsetting UVs with flow field
       vec2 distortedUV = uv + vec2(
         0.02 * sin(flow1 * 6.28 + mediumTime),
         0.02 * cos(flow2 * 6.28 + mediumTime)
       );
 
-      // Add waves that move across the screen
+      // Waves that move across the screen
       float wave1 = 0.5 + 0.5 * sin(distortedUV.x * 5.0 + slowTime);
       float wave2 = 0.5 + 0.5 * cos(distortedUV.y * 4.0 - slowTime * 1.2);
 
-      // Create dynamic color mixing with moving gradients
+      // Dynamic color mixing with moving gradients
       vec3 color1 = mix(colorA, colorB, wave1 * blobField);
       vec3 color2 = mix(colorC, colorD, wave2 * (1.0 - blobField));
 
       // Final color with dynamic blending
       vec3 finalColor = mix(color1, color2, flow1 * 0.5 + 0.5);
 
-      // Add highlights that move with the flow
+      // Highlights that move with the flow
       float highlight = smoothstep(0.4, 0.6, flow2 * wave1 * wave2);
       finalColor = mix(finalColor, vec3(1.0), highlight * 0.15);
 
-      // Apply subtle vignette
+      // Vignette
       float vignette = smoothstep(0.0, 0.7, length(uv - 0.5));
       finalColor = mix(finalColor, finalColor * 0.8, vignette * 0.5);
 
@@ -238,7 +236,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   `;
 
-  // Create shader material with uniforms for colors and resolution
+  // Shader material with uniforms for colors and resolution
   const shaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
       time: { value: 0 },
@@ -255,7 +253,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     transparent: true,
   });
 
-  // Create a plane that fills the camera view
   const geometry = new THREE.PlaneGeometry(2, 2);
   const plane = new THREE.Mesh(geometry, shaderMaterial);
   scene.add(plane);
@@ -267,19 +264,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   function animate() {
     requestAnimationFrame(animate);
 
-    // Update time uniform for animation
     shaderMaterial.uniforms.time.value += 0.01; // Increased speed for more visible movement
 
     // Check if dark mode is active to adjust colors
     const isDarkMode = document.documentElement.classList.contains("dark");
     if (isDarkMode) {
-      // Deeper, richer colors for dark mode
       shaderMaterial.uniforms.colorA.value.set(0x312e81); // deep indigo
       shaderMaterial.uniforms.colorB.value.set(0x4c1d95); // deep purple
       shaderMaterial.uniforms.colorC.value.set(0x1e3a8a); // deep blue
       shaderMaterial.uniforms.colorD.value.set(0x831843); // deep pink
     } else {
-      // Lighter colors for light mode
       shaderMaterial.uniforms.colorA.value.set(0x818cf8); // light indigo
       shaderMaterial.uniforms.colorB.value.set(0xc084fc); // light purple
       shaderMaterial.uniforms.colorC.value.set(0x93c5fd); // light blue
@@ -289,7 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderer.render(scene, camera);
   }
 
-  // Proper resize handler
+  // Resize handler
   function handleResize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -307,21 +301,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Handle window resize
   window.addEventListener("resize", handleResize);
 
-  // Reduce quality on mobile for better performance
+  // Reduced quality on mobile for better performance
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   if (isMobile) {
     renderer.setPixelRatio(1);
   }
 
-  // Start animation
   animate();
 
   // Update colors when theme changes
-  document.getElementById("themeToggle").addEventListener("click", function () {
-    // Colors will update in the next animation frame
-  });
+  document
+    .getElementById("themeToggle")
+    .addEventListener("click", function () {});
 
-  // Create a loading indicator for infinite scroll
+  // Loading indicator for infinite scroll
   const scrollLoadingIndicator = document.createElement("div");
   scrollLoadingIndicator.className =
     "col-span-full flex justify-center py-8 hidden";
@@ -365,11 +358,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       itemSelector: ".masonry-item",
       columnWidth: ".masonry-item",
       percentPosition: true,
-      gutter: 16, // This should match your CSS gap value (1rem = 16px)
+      gutter: 16,
       transitionDuration: "0.2s",
     });
 
-    // Use imagesLoaded to prevent layout issues with images
     imagesLoaded(grid).on("progress", function () {
       masonryGrid.layout();
     });
@@ -391,7 +383,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       light: "bg-pastel-blue-light",
       dark: "dark:bg-pastel-blue-light",
       border: "border-blue-200 dark:border-blue-400",
-      textColor: "text-slate-800 dark:text-slate-900", // Added text color
+      textColor: "text-slate-800 dark:text-slate-900",
     },
     {
       light: "bg-pastel-green-light",
@@ -483,11 +475,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           const naturalWidth = previewImage.naturalWidth;
           const naturalHeight = previewImage.naturalHeight;
 
-          // Apply actual dimensions
           previewImage.style.width = `${naturalWidth}px`;
           previewImage.style.height = `${naturalHeight}px`;
 
-          // Show the container
           previewImageContainer.classList.remove("hidden");
         };
       } else {
@@ -554,7 +544,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       addTags.value = "";
       document.getElementById("addPreviewImage").src = ""; // Reset image
 
-      // ✅ Add the new bookmark to the UI instantly
+      // Add the new bookmark to the UI instantly
       addBookmarkToUI(newBookmark, 0, true);
 
       showToast("Bookmark added successfully!", "success");
@@ -577,8 +567,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   addDialogClose.addEventListener("click", closeAddDialog);
   addDialogOverlay.addEventListener("click", closeAddDialog);
 
-  // Save bookmark when form is submitted
-
   // Allow enter key to trigger fetch URL button
   urlInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
@@ -594,14 +582,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         currentPage = 1;
         hasMoreBookmarks = true;
 
-        // Clear the container but keep the grid-sizer and gutter-sizer
         const gridSizer = document.querySelector(".grid-sizer");
         const gutterSizer = document.querySelector(".gutter-sizer");
         const loadingElem = document.getElementById("loading");
 
         bookmarksContainer.innerHTML = "";
 
-        // Re-add the required elements
         if (gridSizer && gutterSizer) {
           bookmarksContainer.appendChild(gridSizer.cloneNode(true));
           bookmarksContainer.appendChild(gutterSizer.cloneNode(true));
@@ -683,7 +669,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
       }
 
-      // Initialize or update Masonry layout
       if (reset) {
         // Initialize Masonry after the first batch of items is loaded
         setTimeout(initMasonry, 100);
@@ -832,10 +817,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
-    // ✅ Insert at the top (so the newest bookmark appears first)
+    // Insert at the top (so the newest bookmark appears first)
     bookmarksContainer.prepend(bookmarkCard);
 
-    // ✅ Update Masonry grid (if used)
+    // Update Masonry grid (if used)
     if (typeof masonryGrid !== "undefined" && masonryGrid) {
       masonryGrid.prepended([bookmarkCard]);
       setTimeout(() => masonryGrid.layout(), 100);
