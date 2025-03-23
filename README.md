@@ -73,12 +73,12 @@ PORT= "PORT number" (you can set to whichever port you like to, for example: 300
 5. Later, run ``` npm start ```
 6. Finally, open your browser and type in ```localhost:3000``` (if you have used a different port number, then type in that number instead of 3000)
 
-<h2>Extensions</h2>
+<h2>Browser Extension</h2>
 
 1. To use extension, open your browser and go to _Manage Extensions_
-2. Check the ```Developer Mode```
-3. Next, click on ```Load Unpacked``` and select the extension folder from the project folder and now your extension has been added successfully
-4. Now you can jist visit any website, click on the extension and edit to different title, description or even add tags and save...
+2. Check off the ```Developer Mode```
+3. Click on ```Load Unpacked``` and select the extension folder from the project folder and now your extension has been added successfully
+4. Now you can visit any website, click on the extension and edit to different title, description or even add tags and save...
 
 <h2>IF YOU WANT TO KEEP USING THE BOOKMARKS ALL THE TIME, THEN YOU  NEED TO EITHER HOST THE SERVER BY YOURSELF OR JUST START THE SERVER BY TYPING "npm start" EVERYTIME</h2>
 
