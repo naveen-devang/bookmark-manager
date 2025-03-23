@@ -74,7 +74,18 @@
       }
 
       .bookmark-image {
-        transition: transform 0.7s cubic-bezier(0.21, 1, 0.36, 1) !important;
+        transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+        will-change: transform, box-shadow;
+      }
+
+      .bookmark-image:hover {
+        transform: scale(1.05); /* Instead of changing width/height */
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .hover-effect {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       }
 
       .bookmark-card:hover .bookmark-image {
@@ -255,6 +266,24 @@
         border: 1px solid rgba(99, 102, 241, 0.15); /* Subtle indigo border */
       }
 
+      #searchBar {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px); /* For Safari */
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .dark #searchBar {
+        background: rgba(
+          30,
+          41,
+          59,
+          0.5
+        ); /* More visible background in dark mode */
+        border: 1px solid rgba(99, 102, 241, 0.15); /* Subtle indigo border */
+      }
+
       #urlInput {
         background: rgba(255, 255, 255, 0.1);
       }
@@ -329,6 +358,57 @@
           transparent 1px,
           transparent 2px /* Reduced from 4px to 2px for more dense lines */
         );
+      }
+
+      #addDialogContent,
+      #dialogContent {
+        max-height: 80vh; /* Limits height to 80% of viewport */
+        overflow-y: auto; /* Enables scrolling */
+      }
+
+      #addDialogContent::-webkit-scrollbar {
+        width: 10px;
+        border-radius: 10px;
+      }
+
+      #addDialogContent::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 10px;
+      }
+
+      #addDialogContent::-webkit-scrollbar-thumb {
+        background: rgba(100, 100, 100, 0.5);
+        border-radius: 10px;
+      }
+
+      #addDialogContent::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 100, 100, 0.7);
+      }
+
+      #dialogContent::-webkit-scrollbar {
+        width: 10px;
+        border-radius: 10px;
+      }
+
+      #dialogContent::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 10px;
+      }
+
+      #dialogContent::-webkit-scrollbar-thumb {
+        background: rgba(100, 100, 100, 0.5);
+        border-radius: 10px;
+      }
+
+      #dialogContent::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 100, 100, 0.7);
+      }
+
+      /* Firefox Custom Scrollbar */
+      #addDialogContent,
+      #dialogContent {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
       }
 
       .dark .fluted-glass-button::after {
@@ -486,6 +566,22 @@
         </button>
       </header>
 
+      <!-- Search Bar -->
+      <div class="max-w-lg mx-auto mb-8 relative">
+        <div class="relative">
+          <input
+            type="text"
+            id="searchBar"
+            placeholder="Search bookmarks..."
+            class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-base bg-white dark:bg-slate-800 text-slate-800 dark:text-white transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/40"
+          />
+          <span
+            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500"
+          >
+          </span>
+        </div>
+      </div>
+
       <!-- Bookmarks container - now placed between title and input field -->
       <div class="masonry-grid" id="bookmarksContainer">
         <!-- These elements are crucial for Masonry to work correctly -->
@@ -565,7 +661,7 @@
           >
             <img
               id="addPreviewImage"
-              class="rounded-lg object-contain max-h-[300px]"
+              class="rounded-lg object-contain max-h-[250px]"
               src=""
               alt="Preview"
             />

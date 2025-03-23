@@ -715,6 +715,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     fetchBookmarks(false);
   }
 
+  document.getElementById("searchBar").addEventListener("input", function (e) {
+    const searchText = e.target.value.toLowerCase();
+    const bookmarkCards = document.querySelectorAll(".masonry-item");
+    let hasVisible = false;
+
+    bookmarkCards.forEach((card) => {
+      const title = card.querySelector("h3 a").textContent.toLowerCase();
+      const description = card
+        .querySelector(".description-text")
+        .textContent.toLowerCase();
+      const tags = Array.from(card.querySelectorAll(".tag-pill"))
+        .map((tag) => tag.textContent.toLowerCase())
+        .join(" ");
+
+      if (
+        title.includes(searchText) ||
+        description.includes(searchText) ||
+        tags.includes(searchText)
+      ) {
+        card.style.display = "block";
+        card.classList.add("is-visible");
+        hasVisible = true;
+      } else {
+        card.style.display = "none";
+        card.classList.remove("is-visible");
+      }
+    });
+
+    // Force Masonry layout update to ensure proper positioning
+    if (typeof masonryGrid !== "undefined" && masonryGrid && hasVisible) {
+      setTimeout(() => {
+        masonryGrid.layout();
+      }, 300);
+    }
+  });
+
   // Add a bookmark to the UI
   function addBookmarkToUI(bookmark, index = 0, isNewBookmark = false) {
     const bookmarkCard = document.createElement("div");
@@ -797,7 +833,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // ✅ Insert at the top (so the newest bookmark appears first)
-    bookmarksContainer.append(bookmarkCard);
+    bookmarksContainer.prepend(bookmarkCard);
 
     // ✅ Update Masonry grid (if used)
     if (typeof masonryGrid !== "undefined" && masonryGrid) {
@@ -814,6 +850,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       };
     }
+
+    document.querySelectorAll(".bookmark-image").forEach((image) => {
+      image.addEventListener("mouseenter", () => {
+        image.classList.add("hover-effect");
+      });
+
+      image.addEventListener("mouseleave", () => {
+        image.classList.remove("hover-effect");
+      });
+    });
   }
 
   // Delete a bookmark
