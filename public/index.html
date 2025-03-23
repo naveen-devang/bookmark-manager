@@ -1,652 +1,691 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Bookmark Manager</title>
-        <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-        <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
-        <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            /* Masonry Grid Layout - Updated to 6 columns */
-            .masonry-grid {
-                width: 100%;
-            }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bookmark Manager</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+    <script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Masonry Grid Layout - Updated to 6 columns */
+      .masonry-grid {
+        width: 100%;
+      }
 
-            .masonry-item {
-                width: calc(16.666% - 1rem); /* 6 columns with gap */
-                margin-bottom: 1rem;
-            }
+      .masonry-item {
+        width: calc(16.666% - 1rem); /* 6 columns with gap */
+        margin-bottom: 1rem;
+      }
 
-            /* Responsive adjustments */
-            @media (max-width: 1600px) {
-                .masonry-item {
-                    width: calc(20% - 1rem); /* 5 columns */
-                }
-            }
+      /* Responsive adjustments */
+      @media (max-width: 1600px) {
+        .masonry-item {
+          width: calc(20% - 1rem); /* 5 columns */
+        }
+      }
 
-            @media (max-width: 1400px) {
-                .masonry-item {
-                    width: calc(25% - 1rem); /* 4 columns */
-                }
-            }
+      @media (max-width: 1400px) {
+        .masonry-item {
+          width: calc(25% - 1rem); /* 4 columns */
+        }
+      }
 
-            @media (max-width: 1200px) {
-                .masonry-item {
-                    width: calc(33.333% - 1rem); /* 3 columns */
-                }
-            }
+      @media (max-width: 1200px) {
+        .masonry-item {
+          width: calc(33.333% - 1rem); /* 3 columns */
+        }
+      }
 
-            @media (max-width: 900px) {
-                .masonry-item {
-                    width: calc(50% - 1rem); /* 2 columns */
-                }
-            }
+      @media (max-width: 900px) {
+        .masonry-item {
+          width: calc(50% - 1rem); /* 2 columns */
+        }
+      }
 
-            @media (max-width: 600px) {
-                .masonry-item {
-                    width: 100%; /* 1 column */
-                }
-            }
+      @media (max-width: 600px) {
+        .masonry-item {
+          width: 100%; /* 1 column */
+        }
+      }
 
-            /* Animation for cards - Modified for Masonry compatibility */
-            .masonry-item {
-                opacity: 0;
-                transition: opacity 0.5s ease;
-            }
+      /* Animation for cards - Modified for Masonry compatibility */
+      .masonry-item {
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
 
-            .masonry-item.is-visible {
-                opacity: 1;
-            }
+      .masonry-item.is-visible {
+        opacity: 1;
+      }
 
-            /* Your existing styles for cards, etc. */
-            .bookmark-image-container {
-                overflow: hidden;
-                position: relative;
-            }
+      /* Your existing styles for cards, etc. */
+      .bookmark-image-container {
+        overflow: hidden;
+        position: relative;
+      }
 
-            .bookmark-image {
-                transition: transform 0.7s cubic-bezier(0.21, 1, 0.36, 1) !important;
-            }
+      .bookmark-image {
+        transition: transform 0.7s cubic-bezier(0.21, 1, 0.36, 1) !important;
+      }
 
-            .bookmark-card:hover .bookmark-image {
-                transform: scale(1.07) !important;
-            }
+      .bookmark-card:hover .bookmark-image {
+        transform: scale(1.07) !important;
+      }
 
-            .bookmark-image-container::after {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(
-                    to bottom,
-                    rgba(255, 255, 255, 0) 70%,
-                    rgba(255, 255, 255, 0.2) 100%
-                );
-                pointer-events: none;
-                z-index: 2;
-            }
+      .bookmark-image-container::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0) 70%,
+          rgba(255, 255, 255, 0.2) 100%
+        );
+        pointer-events: none;
+        z-index: 2;
+      }
 
-            .dark .bookmark-image-container::after {
-                background: linear-gradient(
-                    to bottom,
-                    rgba(0, 0, 0, 0) 70%,
-                    rgba(0, 0, 0, 0.2) 100%
-                );
-            }
+      .dark .bookmark-image-container::after {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 70%,
+          rgba(0, 0, 0, 0.2) 100%
+        );
+      }
 
-            .bookmark-card h3 {
-                font-weight: 600 !important;
-                letter-spacing: -0.01em !important;
-            }
+      .bookmark-card h3 {
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
+      }
 
-            @keyframes dreamyFadeIn {
-                0% {
-                    opacity: 0;
-                    transform: translateY(20px) scale(0.98);
-                    filter: blur(5px);
-                }
-                100% {
-                    opacity: 1;
-                    transform: translateY(0) scale(1);
-                    filter: blur(0);
-                }
-            }
+      @keyframes dreamyFadeIn {
+        0% {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+          filter: blur(5px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0);
+        }
+      }
 
-            .bookmark-card p {
-                font-weight: 400 !important;
-                line-height: 1.7 !important;
-            }
+      .bookmark-card p {
+        font-weight: 400 !important;
+        line-height: 1.7 !important;
+      }
 
-            .bookmark-card {
-                background: rgba(
-                    255,
-                    255,
-                    255,
-                    0.7
-                ) !important; /* Lighter background with transparency */
-                backdrop-filter: blur(8px) !important;
-                -webkit-backdrop-filter: blur(8px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.12) !important;
-                transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-                overflow: hidden;
-            }
+      .bookmark-card {
+        background: rgba(
+          255,
+          255,
+          255,
+          0.7
+        ) !important; /* Lighter background with transparency */
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.12) !important;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        overflow: hidden;
+      }
 
-            .dark .bookmark-card {
-                background: rgba(
-                    15,
-                    23,
-                    42,
-                    0.6
-                ) !important; /* Darker transparent background */
-                border: 1px solid rgba(99, 102, 241, 0.15) !important;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
-            }
+      .dark .bookmark-card {
+        background: rgba(
+          15,
+          23,
+          42,
+          0.6
+        ) !important; /* Darker transparent background */
+        border: 1px solid rgba(99, 102, 241, 0.15) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+      }
 
-            .bookmark-card:hover {
-                transform: translateY(-6px) scale(1.01) !important;
-                box-shadow: 0 15px 30px rgba(31, 38, 135, 0.25) !important;
-                border-color: rgba(99, 102, 241, 0.4) !important;
-            }
+      .bookmark-card:hover {
+        transform: translateY(-6px) scale(1.01) !important;
+        box-shadow: 0 15px 30px rgba(31, 38, 135, 0.25) !important;
+        border-color: rgba(99, 102, 241, 0.4) !important;
+      }
 
-            .dark .bookmark-card:hover {
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
-            }
+      .dark .bookmark-card:hover {
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+      }
 
-            .bookmark-card::after {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: radial-gradient(
-                    circle at center,
-                    rgba(99, 102, 241, 0.2) 0%,
-                    transparent 70%
-                );
-                opacity: 0;
-                transition: opacity 0.5s ease;
-                pointer-events: none;
-                z-index: 1;
-            }
+      .bookmark-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          circle at center,
+          rgba(99, 102, 241, 0.2) 0%,
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+        z-index: 1;
+      }
 
-            .bookmark-card:hover::after {
-                opacity: 1;
-            }
+      .bookmark-card:hover::after {
+        opacity: 1;
+      }
 
-            .description-text {
-                transition: all 0.3s ease;
-            }
+      .dark .title-text {
+        color: white;
+      }
 
-            /* Read more button hover effect */
-            .read-more-btn {
-                cursor: pointer;
-                display: inline-block;
-                margin-top: 0.25rem;
-                transition: color 0.2s ease;
-            }
+      .description-text {
+        transition: all 0.3s ease;
+      }
 
-            /* Make the line-clamp transition smoother */
-            .description-container {
-                overflow: hidden;
-            }
+      /* Read more button hover effect */
+      .read-more-btn {
+        cursor: pointer;
+        display: inline-block;
+        margin-top: 0.25rem;
+        transition: color 0.2s ease;
+      }
 
-            /* Input container styles */
-            .input-container {
-                position: relative;
-                width: 100%;
-                max-width: 720px;
-                margin: 0 auto;
-            }
+      /* Make the line-clamp transition smoother */
+      .description-container {
+        overflow: hidden;
+      }
 
-            .fetch-button {
-                position: absolute;
-                right: 8px;
-                top: 50%;
-                transform: translateY(-50%);
-            }
+      /* Input container styles */
+      .input-container {
+        position: relative;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+      }
 
-            /* For adding space at the bottom to prevent content from being hidden behind the sticky input */
-            .content-bottom-padding {
-                padding-bottom: 70px;
-            }
+      .fetch-button {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
 
-            /* Floating container with backdrop filter */
-            .floating-input-container {
-                position: fixed;
-                bottom: 16px;
-                left: 0;
-                right: 0;
-                padding-right: 16px;
-                padding-left: 16px;
-                z-index: 30;
-            }
+      /* For adding space at the bottom to prevent content from being hidden behind the sticky input */
+      .content-bottom-padding {
+        padding-bottom: 70px;
+      }
 
-            .glassmorphic-input-wrapper {
-                background: rgba(255, 255, 255, 0.15);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px); /* For Safari */
-                border-radius: 9999px;
-                padding: 4px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.18);
-            }
+      /* Floating container with backdrop filter */
+      .floating-input-container {
+        position: fixed;
+        bottom: 16px;
+        left: 0;
+        right: 0;
+        padding-right: 16px;
+        padding-left: 16px;
+        z-index: 30;
+      }
 
-            .dark .glassmorphic-input-wrapper {
-                background: rgba(
-                    30,
-                    41,
-                    59,
-                    0.5
-                ); /* More visible background in dark mode */
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(99, 102, 241, 0.15); /* Subtle indigo border */
-            }
+      .glassmorphic-input-wrapper {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px); /* For Safari */
+        border-radius: 9999px;
+        padding: 4px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
 
-            #urlInput {
-                background: rgba(255, 255, 255, 0.1);
-            }
+      .dark .glassmorphic-input-wrapper {
+        background: rgba(
+          30,
+          41,
+          59,
+          0.5
+        ); /* More visible background in dark mode */
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(99, 102, 241, 0.15); /* Subtle indigo border */
+      }
 
-            .dark #urlInput {
-                background: rgba(
-                    15,
-                    23,
-                    42,
-                    0.6
-                ); /* More transparent in dark mode */
-                color: rgba(255, 255, 255, 0.9);
-                border-color: rgba(99, 102, 241, 0.2);
-            }
+      #urlInput {
+        background: rgba(255, 255, 255, 0.1);
+      }
 
-            .fluted-glass-button {
-                background: rgba(255, 255, 255, 0.2); /* Nearly transparent */
-                position: relative;
-                overflow: hidden;
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-                transition: all 0.3s ease;
-                color: black; /* Black text in light mode */
-            }
+      .dark #urlInput {
+        background: rgba(15, 23, 42, 0.6); /* More transparent in dark mode */
+        color: rgba(255, 255, 255, 0.9);
+        border-color: rgba(99, 102, 241, 0.2);
+      }
 
-            /* Creating the vertical fluted ridges - with more dense lines */
-            .fluted-glass-button::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: repeating-linear-gradient(
-                    90deg,
-                    rgba(255, 255, 255, 0.15),
-                    rgba(255, 255, 255, 0.15) 1px,
-                    transparent 1px,
-                    transparent 2px
-                        /* Reduced from 4px to 2px for more dense lines */
-                );
-                z-index: 3;
-                pointer-events: none;
-            }
+      .fluted-glass-button {
+        background: rgba(255, 255, 255, 0.2); /* Nearly transparent */
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        color: black; /* Black text in light mode */
+      }
 
-            /* Adding a subtle highlight */
-            .fluted-glass-button::after {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 50%;
-                background: linear-gradient(
-                    to bottom,
-                    rgba(255, 255, 255, 0.2) 0%,
-                    rgba(255, 255, 255, 0) 100%
-                );
-                z-index: 4;
-                pointer-events: none;
-            }
+      /* Creating the vertical fluted ridges - with more dense lines */
+      .fluted-glass-button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0.15) 1px,
+          transparent 1px,
+          transparent 2px /* Reduced from 4px to 2px for more dense lines */
+        );
+        z-index: 3;
+        pointer-events: none;
+      }
 
-            /* Dark mode adjustments */
-            .dark .fluted-glass-button {
-                background: rgba(0, 0, 0, 0.2); /* Nearly transparent dark */
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-                color: white; /* White text in dark mode */
-            }
+      /* Adding a subtle highlight */
+      .fluted-glass-button::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.2) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        z-index: 4;
+        pointer-events: none;
+      }
 
-            .dark .fluted-glass-button::before {
-                background: repeating-linear-gradient(
-                    90deg,
-                    rgba(255, 255, 255, 0.07),
-                    rgba(255, 255, 255, 0.07) 1px,
-                    transparent 1px,
-                    transparent 2px
-                        /* Reduced from 4px to 2px for more dense lines */
-                );
-            }
+      /* Dark mode adjustments */
+      .dark .fluted-glass-button {
+        background: rgba(0, 0, 0, 0.2); /* Nearly transparent dark */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        color: white; /* White text in dark mode */
+      }
 
-            .dark .fluted-glass-button::after {
-                background: linear-gradient(
-                    to bottom,
-                    rgba(255, 255, 255, 0.1) 0%,
-                    rgba(255, 255, 255, 0) 100%
-                );
-            }
+      .dark .fluted-glass-button::before {
+        background: repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.07),
+          rgba(255, 255, 255, 0.07) 1px,
+          transparent 1px,
+          transparent 2px /* Reduced from 4px to 2px for more dense lines */
+        );
+      }
 
-            /* Text styling - no border, positioned behind fluted effect */
-            .fluted-glass-button span {
-                position: relative;
-                z-index: 2;
-                font-weight: 500;
-            }
+      .dark .fluted-glass-button::after {
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+      }
 
-            /* Hover effect with subtle changes but no color */
-            .fluted-glass-button:hover {
-                background: rgba(255, 255, 255, 0.25);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.07);
-            }
+      /* Text styling - no border, positioned behind fluted effect */
+      .fluted-glass-button span {
+        position: relative;
+        z-index: 2;
+        font-weight: 500;
+      }
 
-            .dark .fluted-glass-button:hover {
-                background: rgba(0, 0, 0, 0.25);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            }
+      /* Hover effect with subtle changes but no color */
+      .fluted-glass-button:hover {
+        background: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.07);
+      }
 
-            #toastViewport > div {
-                backdrop-filter: blur(16px) !important;
-                -webkit-backdrop-filter: blur(16px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15) !important;
-                transition: all 0.5s cubic-bezier(0.21, 1, 0.36, 1) !important;
-            }
+      .dark .fluted-glass-button:hover {
+        background: rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
 
-            .dark #toastViewport > div {
-                border: 1px solid rgba(99, 102, 241, 0.2) !important;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-            }
-        </style>
-        <script>
-            tailwind.config = {
-                darkMode: "class",
-                theme: {
-                    extend: {
-                        colors: {
-                            primary: {
-                                DEFAULT: "#6366f1",
-                                dark: "#818cf8",
-                            },
-                            background: {
-                                light: "#f8fafc",
-                                dark: "#0f172a",
-                            },
-                            card: {
-                                light: "#fff5f7",
-                                dark: "#1a202e",
-                            },
-                            pastel: {
-                                blue: {
-                                    light: "#e0f2fe",
-                                    dark: "#172554",
-                                },
-                                pink: {
-                                    light: "#fce7f3",
-                                    dark: "#4c1d95",
-                                },
-                                green: {
-                                    light: "#dcfce7",
-                                    dark: "#14532d",
-                                },
-                                purple: {
-                                    light: "#f3e8ff",
-                                    dark: "#4a044e",
-                                },
-                                yellow: {
-                                    light: "#fef9c3",
-                                    dark: "#713f12",
-                                },
-                                orange: {
-                                    light: "#ffedd5",
-                                    dark: "#7c2d12",
-                                },
-                            },
-                        },
-                        transitionProperty: {
-                            height: "height",
-                        },
-                    },
+      #toastViewport > div {
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15) !important;
+        transition: all 0.5s cubic-bezier(0.21, 1, 0.36, 1) !important;
+      }
+
+      .dark #toastViewport > div {
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: "#6366f1",
+                dark: "#818cf8",
+              },
+              background: {
+                light: "#f8fafc",
+                dark: "#0f172a",
+              },
+              card: {
+                light: "#fff5f7",
+                dark: "#1a202e",
+              },
+              pastel: {
+                blue: {
+                  light: "#e0f2fe",
+                  dark: "#172554",
                 },
-            };
-        </script>
-    </head>
-    <body
-        class="bg-background-light text-slate-800 dark:bg-background-dark dark:text-slate-100 min-h-screen"
-    >
-        <div
-            id="background-canvas"
-            class="fixed top-0 left-0 w-full h-full -z-10"
-        ></div>
-        <div class="max-w-[1920px] mx-auto px-4 py-8 content-bottom-padding">
-            <!-- Header with centered title -->
-            <header class="mb-12 text-center relative">
-                <div class="flex justify-center items-center">
-                    <h1
-                        class="text-4xl font-bold tracking-tight bg-white bg-clip-text text-transparent"
-                    >
-                        Bookmark Manager
-                    </h1>
-                </div>
-                <button
-                    id="themeToggle"
-                    class="absolute right-4 top-0 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                    aria-label="Toggle dark mode"
-                >
-                    <!-- Sun icon -->
-                    <svg
-                        class="sun-icon block dark:hidden"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line
-                            x1="18.36"
-                            y1="18.36"
-                            x2="19.78"
-                            y2="19.78"
-                        ></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                    <!-- Moon icon -->
-                    <svg
-                        class="moon-icon hidden dark:block"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                        ></path>
-                    </svg>
-                </button>
-            </header>
-
-            <!-- Bookmarks container - now placed between title and input field -->
-            <div class="masonry-grid" id="bookmarksContainer">
-                <!-- These elements are crucial for Masonry to work correctly -->
-                <div class="grid-sizer"></div>
-                <div class="gutter-sizer"></div>
-
-                <!-- Bookmarks will be loaded here -->
-                <div
-                    id="loading"
-                    class="text-center py-12 text-slate-500 dark:text-slate-400 text-lg flex items-center justify-center gap-4"
-                >
-                    Loading bookmarks...
-                    <div
-                        class="animate-spin h-5 w-5 border-2 border-slate-500 dark:border-slate-400 rounded-full border-t-transparent"
-                    ></div>
-                </div>
-            </div>
-
-            <!-- Preview container for bookmark preview -->
-            <!-- Add Bookmark Modal -->
-            <div id="addDialogOverlay" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"></div>
-
-            <div id="addDialogContent" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-pastel-blue-light dark:bg-pastel-blue-dark text-slate-800 dark:text-slate-100 p-10 rounded-xl max-w-[550px] w-[90%] z-50 hidden opacity-0 scale-95 transition-all border border-indigo-200 dark:border-indigo-900">
-                <h2 class="text-2xl font-extrabold mb-6 dark:text-white">Add Bookmark</h2>
-                
-                <form id="addBookmarkForm">
-                    <div class="mb-6">
-                        <label for="addTitle" class="block mb-3 font-semibold dark:text-white">Title</label>
-                        <input type="text" id="addTitle" required class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40" />
-                    </div>
-                    
-                    <div class="mb-6">
-                        <label for="addDescription" class="block mb-3 font-semibold dark:text-white">Description</label>
-                        <textarea id="addDescription" class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"></textarea>
-                    </div>
-                    
-                    <div    class="mb-6">
-                        <label for="addTags" class="block mb-3 font-semibold dark:text-white">Tags (comma separated)</label>
-                        <input type="text" id="addTags" class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40" />
-                    </div>
-
-                    <div id="addPreviewImageContainer" class="relative overflow-hidden rounded-xl mb-6 hidden flex justify-center">
-                        <img id="addPreviewImage" class="rounded-lg object-contain max-h-[300px]" src="" alt="Preview">
-                    </div>                     
-                    
-                    <div class="flex justify-end gap-4 mt-8">
-                        <button type="button" id="addDialogClose" class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all">Cancel</button>
-                        <button type="submit" class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl transition-colors">Save</button>
-                    </div>
-                </form>
-            </div>
-
+                pink: {
+                  light: "#fce7f3",
+                  dark: "#4c1d95",
+                },
+                green: {
+                  light: "#dcfce7",
+                  dark: "#14532d",
+                },
+                purple: {
+                  light: "#f3e8ff",
+                  dark: "#4a044e",
+                },
+                yellow: {
+                  light: "#fef9c3",
+                  dark: "#713f12",
+                },
+                orange: {
+                  light: "#ffedd5",
+                  dark: "#7c2d12",
+                },
+              },
+            },
+            transitionProperty: {
+              height: "height",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="bg-background-light text-slate-800 dark:bg-background-dark dark:text-slate-100 min-h-screen"
+  >
+    <div
+      id="background-canvas"
+      class="fixed top-0 left-0 w-full h-full -z-10"
+    ></div>
+    <div class="max-w-[1920px] mx-auto px-4 py-8 content-bottom-padding">
+      <!-- Header with centered title -->
+      <header class="mb-12 text-center relative">
+        <div class="flex justify-center items-center">
+          <h1
+            class="text-4xl font-bold tracking-tight bg-white bg-clip-text text-transparent"
+          >
+            Bookmark Manager
+          </h1>
         </div>
-
-        <!-- Floating URL input field at the bottom with backdrop filter -->
-        <div class="floating-input-container">
-            <div
-                class="glassmorphic-input-wrapper max-w-[1200px] mx-auto relative"
-            >
-                <input
-                    type="url"
-                    id="urlInput"
-                    placeholder="Enter URL to bookmark"
-                    required
-                    class="w-full px-6 py-3 border border-white/20 dark:border-slate-700/50 rounded-full text-base transition focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/40 pr-36 bg-white/10 dark:bg-slate-800/30 backdrop-blur-md"
-                />
-                <button
-                    id="fetchUrlButton"
-                    type="button"
-                    class="absolute right-1 top-1 bottom-1 px-6 rounded-full text-white font-semibold transition-all fluted-glass-button"
-                >
-                    Fetch Details
-                </button>
-            </div>
-        </div>
-
-        <!-- Toast system -->
-        <div
-            id="toastViewport"
-            class="fixed bottom-24 right-8 flex flex-col gap-4 z-50"
-        ></div>
-
-        <!-- Modal dialog -->
-        <div
-            id="dialogOverlay"
-            class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"
-        ></div>
-        <div
-            id="dialogContent"
-            class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-pastel-blue-light dark:bg-pastel-blue-dark text-slate-800 dark:text-slate-100 p-10 rounded-xl max-w-[550px] w-[90%] z-50 hidden opacity-0 scale-95 transition-all border border-indigo-200 dark:border-indigo-900"
+        <button
+          id="themeToggle"
+          class="absolute right-4 top-0 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+          aria-label="Toggle dark mode"
         >
-            <h2 class="text-2xl font-extrabold mb-6 dark:text-white">
-                Edit Bookmark
-            </h2>
-            <form id="editForm">
-                <input type="hidden" id="editId" />
-                <div class="mb-6">
-                    <label
-                        for="editTitle"
-                        class="block mb-3 font-semibold dark:text-white"
-                        >Title</label
-                    >
-                    <input
-                        type="text"
-                        id="editTitle"
-                        required
-                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
-                    />
-                </div>
-                <div class="mb-6">
-                    <label
-                        for="editDescription"
-                        class="block mb-3 font-semibold dark:text-white"
-                        >Description</label
-                    >
-                    <textarea
-                        id="editDescription"
-                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"
-                    ></textarea>
-                </div>
-                <div class="mb-6">
-                    <label
-                        for="editTags"
-                        class="block mb-3 font-semibold dark:text-white"
-                        >Tags (comma separated)</label
-                    >
-                    <input
-                        type="text"
-                        id="editTags"
-                        class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
-                    />
-                </div>
-                <div class="flex justify-end gap-4 mt-8">
-                    <button
-                        type="button"
-                        class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-                        id="dialogClose"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl transition-colors"
-                    >
-                        Save
-                    </button>
-                </div>
-            </form>
-        </div>
+          <!-- Sun icon -->
+          <svg
+            class="sun-icon block dark:hidden"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <!-- Moon icon -->
+          <svg
+            class="moon-icon hidden dark:block"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </header>
 
-        <script src="app.js"></script>
-    </body>
+      <!-- Bookmarks container - now placed between title and input field -->
+      <div class="masonry-grid" id="bookmarksContainer">
+        <!-- These elements are crucial for Masonry to work correctly -->
+        <div class="grid-sizer"></div>
+        <div class="gutter-sizer"></div>
+
+        <!-- Bookmarks will be loaded here -->
+        <div
+          id="loading"
+          class="text-center py-12 text-slate-500 dark:text-slate-400 text-lg flex items-center justify-center gap-4"
+        >
+          Loading bookmarks...
+          <div
+            class="animate-spin h-5 w-5 border-2 border-slate-500 dark:border-slate-400 rounded-full border-t-transparent"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Preview container for bookmark preview -->
+      <!-- Add Bookmark Modal -->
+      <div
+        id="addDialogOverlay"
+        class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"
+      ></div>
+
+      <div
+        id="addDialogContent"
+        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-pastel-blue-light dark:bg-pastel-blue-dark text-slate-800 dark:text-slate-100 p-10 rounded-xl max-w-[550px] w-[90%] z-50 hidden opacity-0 scale-95 transition-all border border-indigo-200 dark:border-indigo-900"
+      >
+        <h2 class="text-2xl font-extrabold mb-6 dark:text-white">
+          Add Bookmark
+        </h2>
+
+        <form id="addBookmarkForm">
+          <div class="mb-6">
+            <label
+              for="addTitle"
+              class="block mb-3 font-semibold dark:text-white"
+              >Title</label
+            >
+            <input
+              type="text"
+              id="addTitle"
+              required
+              class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+            />
+          </div>
+
+          <div class="mb-6">
+            <label
+              for="addDescription"
+              class="block mb-3 font-semibold dark:text-white"
+              >Description</label
+            >
+            <textarea
+              id="addDescription"
+              class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"
+            ></textarea>
+          </div>
+
+          <div class="mb-6">
+            <label
+              for="addTags"
+              class="block mb-3 font-semibold dark:text-white"
+              >Tags (comma separated)</label
+            >
+            <input
+              type="text"
+              id="addTags"
+              class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+            />
+          </div>
+
+          <div
+            id="addPreviewImageContainer"
+            class="relative overflow-hidden rounded-xl mb-6 hidden flex justify-center"
+          >
+            <img
+              id="addPreviewImage"
+              class="rounded-lg object-contain max-h-[300px]"
+              src=""
+              alt="Preview"
+            />
+          </div>
+
+          <div class="flex justify-end gap-4 mt-8">
+            <button
+              type="button"
+              id="addDialogClose"
+              class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Floating URL input field at the bottom with backdrop filter -->
+    <div class="floating-input-container">
+      <div class="glassmorphic-input-wrapper max-w-[1200px] mx-auto relative">
+        <input
+          type="url"
+          id="urlInput"
+          placeholder="Enter URL to bookmark"
+          required
+          class="w-full px-6 py-3 border border-white/20 dark:border-slate-700/50 rounded-full text-base transition focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-500/40 pr-36 bg-white/10 dark:bg-slate-800/30 backdrop-blur-md"
+        />
+        <button
+          id="fetchUrlButton"
+          type="button"
+          class="absolute right-1 top-1 bottom-1 px-6 rounded-full text-white font-semibold transition-all fluted-glass-button"
+        >
+          Fetch Details
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast system -->
+    <div
+      id="toastViewport"
+      class="fixed bottom-24 right-8 flex flex-col gap-4 z-50"
+    ></div>
+
+    <!-- Modal dialog -->
+    <div
+      id="dialogOverlay"
+      class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity"
+    ></div>
+    <div
+      id="dialogContent"
+      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-pastel-blue-light dark:bg-pastel-blue-dark text-slate-800 dark:text-slate-100 p-10 rounded-xl max-w-[550px] w-[90%] z-50 hidden opacity-0 scale-95 transition-all border border-indigo-200 dark:border-indigo-900"
+    >
+      <h2 class="text-2xl font-extrabold mb-6 dark:text-white">
+        Edit Bookmark
+      </h2>
+      <form id="editForm">
+        <input type="hidden" id="editId" />
+        <div class="mb-6">
+          <label
+            for="editTitle"
+            class="block mb-3 font-semibold dark:text-white"
+            >Title</label
+          >
+          <input
+            type="text"
+            id="editTitle"
+            required
+            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+          />
+        </div>
+        <div class="mb-6">
+          <label
+            for="editDescription"
+            class="block mb-3 font-semibold dark:text-white"
+            >Description</label
+          >
+          <textarea
+            id="editDescription"
+            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40 min-h-[120px] resize-vertical"
+          ></textarea>
+        </div>
+        <div class="mb-6">
+          <label for="editTags" class="block mb-3 font-semibold dark:text-white"
+            >Tags (comma separated)</label
+          >
+          <input
+            type="text"
+            id="editTags"
+            class="w-full px-4 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-base transition focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:bg-slate-800 dark:focus:ring-indigo-500/40"
+          />
+        </div>
+        <div class="flex justify-end gap-4 mt-8">
+          <button
+            type="button"
+            class="px-6 py-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+            id="dialogClose"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl transition-colors"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
 </html>

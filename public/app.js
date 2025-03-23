@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Initialize Supabase client
     supabaseClient = window.supabase.createClient(
       config.supabaseUrl,
-      config.supabaseKey,
+      config.supabaseKey
     );
   } catch (error) {
     console.error("Error initializing application:", error);
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const fetchUrlButton = document.getElementById("fetchUrlButton");
   const previewContainer = document.getElementById("previewContainer");
   const previewImageContainer = document.getElementById(
-    "previewImageContainer",
+    "previewImageContainer"
   );
   const previewImage = document.getElementById("previewImage");
   const previewTitle = document.getElementById("previewTitle");
@@ -61,7 +61,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const addTitle = document.getElementById("addTitle");
   const addDescription = document.getElementById("addDescription");
   const addTags = document.getElementById("addTags");
-  
 
   // Toast viewport
   const toastViewport = document.getElementById("toastViewport");
@@ -383,7 +382,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         masonryGrid.layout();
       }
     },
-    true,
+    true
   );
 
   // Pastel colors for cards
@@ -450,95 +449,97 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!url) return;
 
     try {
-        showToast("Fetching URL details...", "info");
+      showToast("Fetching URL details...", "info");
 
-        const response = await fetch("/api/fetch-metadata", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch URL details");
-        }
-
-        const metadata = await response.json();
-
-        // Populate form fields
-        addTitle.value = metadata.title || "";
-        addDescription.value = metadata.description || "";
-        addTags.value = "";
-
-        // Handle preview image
-        const previewImage = document.getElementById("addPreviewImage");
-        const previewImageContainer = document.getElementById("addPreviewImageContainer");
-
-        if (metadata.image) {
-            previewImage.src = metadata.image;
-            previewImage.style.display = "block";
-
-            // Wait for the image to load before adjusting size
-            previewImage.onload = function () {
-                const naturalWidth = previewImage.naturalWidth;
-                const naturalHeight = previewImage.naturalHeight;
-
-                // Apply actual dimensions
-                previewImage.style.width = `${naturalWidth}px`;
-                previewImage.style.height = `${naturalHeight}px`;
-
-                // Show the container
-                previewImageContainer.classList.remove("hidden");
-            };
-        } else {
-            previewImageContainer.classList.add("hidden");
-        }
-
-        // Show overlay
-        addDialogOverlay.classList.remove("hidden");
-        addDialogContent.classList.remove("hidden");
-
-        // Trigger reflow for smooth animation
-        void addDialogOverlay.offsetWidth;
-        void addDialogContent.offsetWidth;
-
-        addDialogOverlay.classList.add("opacity-100");
-        addDialogContent.classList.add("opacity-100", "scale-100");
-
-        showToast("URL details fetched! You can edit before saving.", "success");
-    } catch (error) {
-        console.error("Error fetching URL details:", error);
-        showToast("Failed to fetch URL details", "error");
-    }
-});
-
-
-
-addBookmarkForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const url = urlInput.value.trim();
-  const title = addTitle.value.trim();
-  const description = addDescription.value.trim();
-  const tagsString = addTags.value.trim();
-  const tags = tagsString ? tagsString.split(",").map(tag => tag.trim()) : [];
-
-  // Get image URL
-  let image_url = document.getElementById("addPreviewImage").src;
-  if (!image_url || image_url.includes("default.png")) {
-      image_url = null;
-  }
-
-  try {
-      showToast("Adding bookmark...", "info");
-
-      const response = await fetch("/api/bookmarks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, title, description, image_url, tags }),
+      const response = await fetch("/api/fetch-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
       });
 
       if (!response.ok) {
-          throw new Error("Failed to add bookmark");
+        throw new Error("Failed to fetch URL details");
+      }
+
+      const metadata = await response.json();
+
+      // Populate form fields
+      addTitle.value = metadata.title || "";
+      addDescription.value = metadata.description || "";
+      addTags.value = "";
+
+      // Handle preview image
+      const previewImage = document.getElementById("addPreviewImage");
+      const previewImageContainer = document.getElementById(
+        "addPreviewImageContainer"
+      );
+
+      if (metadata.image) {
+        previewImage.src = metadata.image;
+        previewImage.style.display = "block";
+
+        // Wait for the image to load before adjusting size
+        previewImage.onload = function () {
+          const naturalWidth = previewImage.naturalWidth;
+          const naturalHeight = previewImage.naturalHeight;
+
+          // Apply actual dimensions
+          previewImage.style.width = `${naturalWidth}px`;
+          previewImage.style.height = `${naturalHeight}px`;
+
+          // Show the container
+          previewImageContainer.classList.remove("hidden");
+        };
+      } else {
+        previewImageContainer.classList.add("hidden");
+      }
+
+      // Show overlay
+      addDialogOverlay.classList.remove("hidden");
+      addDialogContent.classList.remove("hidden");
+
+      // Trigger reflow for smooth animation
+      void addDialogOverlay.offsetWidth;
+      void addDialogContent.offsetWidth;
+
+      addDialogOverlay.classList.add("opacity-100");
+      addDialogContent.classList.add("opacity-100", "scale-100");
+
+      showToast("URL details fetched! You can edit before saving.", "success");
+    } catch (error) {
+      console.error("Error fetching URL details:", error);
+      showToast("Failed to fetch URL details", "error");
+    }
+  });
+
+  addBookmarkForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const url = urlInput.value.trim();
+    const title = addTitle.value.trim();
+    const description = addDescription.value.trim();
+    const tagsString = addTags.value.trim();
+    const tags = tagsString
+      ? tagsString.split(",").map((tag) => tag.trim())
+      : [];
+
+    // Get image URL
+    let image_url = document.getElementById("addPreviewImage").src;
+    if (!image_url || image_url.includes("default.png")) {
+      image_url = null;
+    }
+
+    try {
+      showToast("Adding bookmark...", "info");
+
+      const response = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, title, description, image_url, tags }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add bookmark");
       }
 
       const newBookmark = await response.json();
@@ -557,29 +558,24 @@ addBookmarkForm.addEventListener("submit", async (e) => {
       addBookmarkToUI(newBookmark, 0, true);
 
       showToast("Bookmark added successfully!", "success");
-  } catch (error) {
+    } catch (error) {
       console.error("Error adding bookmark:", error);
       showToast("Failed to add bookmark", "error");
-  }
-});
+    }
+  });
 
+  function closeAddDialog() {
+    addDialogOverlay.classList.remove("opacity-100");
+    addDialogContent.classList.remove("opacity-100", "scale-100");
 
-
-
-function closeAddDialog() {
-  addDialogOverlay.classList.remove("opacity-100");
-  addDialogContent.classList.remove("opacity-100", "scale-100");
-
-  setTimeout(() => {
+    setTimeout(() => {
       addDialogOverlay.classList.add("hidden");
       addDialogContent.classList.add("hidden");
-  }, 300);
-}
+    }, 300);
+  }
 
-addDialogClose.addEventListener("click", closeAddDialog);
-addDialogOverlay.addEventListener("click", closeAddDialog);
-
-
+  addDialogClose.addEventListener("click", closeAddDialog);
+  addDialogOverlay.addEventListener("click", closeAddDialog);
 
   // Save bookmark when form is submitted
 
@@ -590,7 +586,6 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
       fetchUrlButton.click();
     }
   });
-
 
   // Fetch all bookmarks
   async function fetchBookmarks(reset = true) {
@@ -641,7 +636,7 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
 
       // Fetch bookmarks from API
       const response = await fetch(
-        `/api/bookmarks?page=${currentPage}&limit=${pageSize}`,
+        `/api/bookmarks?page=${currentPage}&limit=${pageSize}`
       );
 
       if (!response.ok) {
@@ -735,8 +730,13 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
     // Create tags HTML if available
     let tagsHtml = "";
     if (bookmark.tags && bookmark.tags.length > 0) {
-        tagsHtml = `<div class="flex flex-wrap gap-2 mt-4">
-            ${bookmark.tags.map(tag => `<span class="py-1 px-3 rounded-full text-xs tag-pill bg-indigo-200 text-indigo-800">${tag}</span>`).join("")}
+      tagsHtml = `<div class="flex flex-wrap gap-2 mt-4">
+            ${bookmark.tags
+              .map(
+                (tag) =>
+                  `<span class="py-1 px-3 rounded-full text-xs tag-pill bg-indigo-200 text-indigo-800">${tag}</span>`
+              )
+              .join("")}
         </div>`;
     }
 
@@ -747,7 +747,7 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
             </div>
             <div class="p-6">
                 <h3 class="text-xl font-bold mb-3 break-words">
-                    <a href="${bookmark.url}" class="text-gray-800 hover:text-indigo-500 transition" target="_blank">${title}</a>
+                    <a href="${bookmark.url}" class="text-white-800 hover:text-indigo-500 transition" target="_blank">${title}</a>
                 </h3>
                 <div class="description-container">
                     <p class="text-gray-600 mb-2 line-clamp-3 description-text">${description}</p>
@@ -778,22 +778,22 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
     const readMoreBtn = bookmarkCard.querySelector(".read-more-btn");
 
     if (description.length > 150) {
-        readMoreBtn.classList.remove("hidden");
+      readMoreBtn.classList.remove("hidden");
 
-        readMoreBtn.addEventListener("click", function () {
-            if (descriptionText.classList.contains("line-clamp-3")) {
-                descriptionText.classList.remove("line-clamp-3");
-                this.textContent = "Read less";
-            } else {
-                descriptionText.classList.add("line-clamp-3");
-                this.textContent = "Read more";
-            }
+      readMoreBtn.addEventListener("click", function () {
+        if (descriptionText.classList.contains("line-clamp-3")) {
+          descriptionText.classList.remove("line-clamp-3");
+          this.textContent = "Read less";
+        } else {
+          descriptionText.classList.add("line-clamp-3");
+          this.textContent = "Read more";
+        }
 
-            // Ensure Masonry layout updates after expanding/collapsing
-            if (typeof masonryGrid !== "undefined" && masonryGrid) {
-                setTimeout(() => masonryGrid.layout(), 50);
-            }
-        });
+        // Ensure Masonry layout updates after expanding/collapsing
+        if (typeof masonryGrid !== "undefined" && masonryGrid) {
+          setTimeout(() => masonryGrid.layout(), 50);
+        }
+      });
     }
 
     // ✅ Insert at the top (so the newest bookmark appears first)
@@ -801,21 +801,20 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
 
     // ✅ Update Masonry grid (if used)
     if (typeof masonryGrid !== "undefined" && masonryGrid) {
-        masonryGrid.prepended([bookmarkCard]);
-        setTimeout(() => masonryGrid.layout(), 100);
+      masonryGrid.prepended([bookmarkCard]);
+      setTimeout(() => masonryGrid.layout(), 100);
     }
 
     // Ensure image loads correctly for Masonry layout
     const cardImage = bookmarkCard.querySelector(".bookmark-image");
     if (cardImage) {
-        cardImage.onload = function () {
-            if (typeof masonryGrid !== "undefined" && masonryGrid) {
-                masonryGrid.layout();
-            }
-        };
+      cardImage.onload = function () {
+        if (typeof masonryGrid !== "undefined" && masonryGrid) {
+          masonryGrid.layout();
+        }
+      };
     }
-}
-
+  }
 
   // Delete a bookmark
   async function deleteBookmark(id) {
@@ -947,7 +946,9 @@ addDialogOverlay.addEventListener("click", closeAddDialog);
   function showToast(message, type = "info") {
     // Create toast element
     const toast = document.createElement("div");
-    toast.className = `flex items-center gap-4 p-5 rounded-xl mb-4 transform translate-x-full transition-all duration-500 ease-out max-w-md relative overflow-hidden ${getToastClass(type)}`;
+    toast.className = `flex items-center gap-4 p-5 rounded-xl mb-4 transform translate-x-full transition-all duration-500 ease-out max-w-md relative overflow-hidden ${getToastClass(
+      type
+    )}`;
 
     // Add left border color based on type
     toast.innerHTML = `
